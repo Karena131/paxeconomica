@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pax Economica</title>
+    
+    <!-- Chart.js & Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial"></script>
+
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body { background-color: #121212; color: #f2f4f6; overflow: hidden; height: 100vh; display: flex; font-size: 14px; }
+        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        
+        button, input, select, textarea { outline: none; border: none; background: transparent; color: inherit; font-family: inherit; }
+        button { cursor: pointer; border-radius: 8px; transition: opacity 0.15s; }
+        button:hover { opacity: 0.8; }
+        
+        .c-red { color: #f04452 !important; }
+        .c-blue { color: #3182f6 !important; }
+        .c-gray { color: #8b95a1 !important; }
+        .bg-red { background-color: #f04452 !important; color: #fff !important; }
+        .bg-blue { background-color: #3182f6 !important; color: #fff !important; }
+        .bg-dark { background-color: #1c1c1e !important; }
+        
+        #sys-alert { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #3182f6; color: #fff; padding: 15px 30px; display: none; z-index: 9999; border-radius: 12px; font-weight: bold; box-shadow: 0 4px 20px rgba(0,0,0,0.5); font-size: 16px; max-width: 80%; text-align: center; line-height: 1.4; }
+
+        /* Auth Screen */
+        #auth-screen { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; background: #121212; z-index: 1000; }
+        .auth-box { background: #1c1c1e; padding: 40px; width: 400px; max-width: 90%; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .auth-box h2 { text-align: center; margin-bottom: 5px; font-size: 28px; font-weight: 800; color: #fff; }
+        .auth-box .beta-badge { text-align: center; color: #f04452; font-size: 13px; font-weight: bold; margin-bottom: 30px; }
+        .auth-box input { width: 100%; margin-bottom: 12px; background: #2c2c2e; padding: 14px; border-radius: 8px; font-size: 15px; color:#fff; }
+        .auth-box button.exec { width: 100%; padding: 16px; margin-top: 10px; font-size: 16px; font-weight: 700; }
+        .toggle-btn { margin-top: 15px; font-size: 13px; width: 100%; text-align: center; display: block; color: #8b95a1; text-decoration: underline; }
+        .creator-mark { text-align: center; color: #555; font-size: 12px; margin-top: 20px; font-weight: 500; }
+
+        /* Layout */
+        #game-screen { display: none; width: 100%; height: 100%; position: relative; }
+        #sidebar { width: 340px; background: #18181a; border-right: 1px solid #2c2c2e; display: flex; flex-direction: column; z-index: 9000; height: 100%; flex-shrink: 0; }
+        .sidebar-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        .sidebar-nav { padding: 15px; border-bottom: 1px solid #2c2c2e; display: flex; gap: 5px; flex-wrap: wrap; }
+        .sidebar-nav button { flex: 1; min-width: 45%; padding: 12px; font-size: 14px; font-weight: 600; color: #8b95a1; background: #2c2c2e; }
+        .sidebar-nav button:hover, .sidebar-nav button.active { color: #fff; background: #3a3a3c; }
+
+        .account-box { padding: 25px 20px; flex: 1; }
+        .acc-header { display: flex; justify-content: space-between; color: #8b95a1; font-size: 13px; font-weight: 600; margin-bottom: 20px; align-items:center; }
+        
+        .sb-list-header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #8b95a1; margin-bottom: 10px; padding-top: 15px; border-top: 1px solid #2c2c2e; }
+        .toggle-group { display: flex; background: #2c2c2e; border-radius: 6px; padding: 3px; }
+        .toggle-group button { padding: 6px 10px; font-size: 12px; color: #8b95a1; border-radius: 4px; }
+        .toggle-group button.active { background: #4e4e51; color: #fff; font-weight: 600; }
+
+        .sb-item { display: flex; justify-content: space-between; padding: 12px 0; cursor: pointer; border-bottom: 1px solid #2c2c2e;}
+        .sb-item:hover { opacity: 0.7; }
+        .sb-icon { width: 36px; height: 36px; border-radius: 50%; background: #2c2c2e; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; margin-right: 12px; color:#fff; overflow:hidden;}
+        
+        .sidebar-news { height: 28%; min-height: 220px; background: #121212; border-top: 1px solid #2c2c2e; display: flex; flex-direction: column; }
+        .sidebar-news-header { padding: 15px 20px; font-weight: bold; color: #fff; border-bottom: 1px solid #1c1c1e; display: flex; justify-content: space-between; }
+        .sidebar-news-list { flex: 1; overflow-y: auto; padding: 10px 20px; }
+        .sb-news-item { margin-bottom: 15px; cursor: pointer; border-bottom: 1px dashed #2c2c2e; padding-bottom: 12px; }
+        .sb-news-item:hover .sb-news-title { color: #fff; }
+        .sb-news-time { font-size: 11px; color: #8b95a1; margin-bottom: 4px; }
+        .sb-news-title { font-size: 13px; color: #d1d1d6; line-height: 1.4; transition: color 0.2s; }
+
+        /* Main Content */
+        #main-wrapper { flex: 1; display: flex; flex-direction: column; background: #121212; overflow: hidden; position: relative; }
+        #main-content { flex: 1; overflow-y: auto; padding: 30px 40px; position: relative; }
+
+        .view { display: none; animation: fadeIn 0.2s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .global-chart-wrap { background: #1c1c1e; padding: 20px; border-radius: 16px; height: 350px; margin-bottom: 30px; position: relative; }
+        .section-title { font-size: 22px; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; color: #fff; }
+        
+        .market-table { width: 100%; border-collapse: collapse; }
+        .market-table th { text-align: right; padding: 15px 10px; color: #8b95a1; font-weight: 500; border-bottom: 1px solid #2c2c2e; }
+        .market-table th:first-child { text-align: left; }
+        .market-table tr { cursor: pointer; border-bottom: 1px solid #1c1c1e; }
+        .market-table tr:hover { background: #1c1c1e; }
+        .market-table td { padding: 18px 10px; text-align: right; font-size: 16px; font-weight: 600; color:#fff;}
+        .market-table td:first-child { text-align: left; display: flex; align-items: center; gap: 12px; }
+        .market-icon { width: 32px; height: 32px; border-radius: 50%; background: #2c2c2e; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; flex-shrink: 0; color: #fff; }
+
+        .estate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .estate-card { background: #1c1c1e; padding: 25px; border-radius: 16px; cursor: pointer; transition: background 0.2s; border: 1px solid #2c2c2e; }
+        .estate-card:hover { background: #2c2c2e; }
+
+        /* Modal Details */
+        #stock-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9500; justify-content: center; align-items: center; padding: 40px; }
+        #stock-modal-content { background: #121212; width: 100%; max-width: 1300px; height: 95%; max-height: 850px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); display: flex; flex-direction: column; overflow: hidden; border: 1px solid #2c2c2e; position: relative; }
+        
+        .modal-header-bar { padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2c2c2e; background: #1c1c1e; }
+        .modal-close { font-size: 24px; color: #8b95a1; cursor: pointer; background: transparent; border: none; padding: 5px; }
+        
+        .dt-scroll-area { flex: 1; overflow-y: auto; padding: 30px; }
+        .dt-name { font-size: 28px; font-weight: 700; margin-bottom: 5px; display: flex; align-items: center; gap: 10px; color: #fff; }
+        .dt-desc { font-size: 14px; color: #8b95a1; margin-bottom: 15px; }
+        .dt-price { font-size: 32px; font-weight: 700; margin-top: 10px; margin-bottom: 30px; }
+        
+        .dt-grid { display: grid; grid-template-columns: 2.2fr 1fr; gap: 30px; height: 100%; }
+        .dt-chart-wrap { background: #1c1c1e; border-radius: 16px; padding: 20px; height: 400px; margin-bottom: 20px; }
+        
+        .order-panel { display: flex; flex-direction: column; gap: 20px; }
+        .order-box { background: #1c1c1e; border-radius: 16px; padding: 25px; display: flex; flex-direction: column; height: 100%; }
+
+        .order-tabs { display: flex; background: #2c2c2e; border-radius: 8px; padding: 4px; margin-bottom: 25px; }
+        .order-tab { flex: 1; text-align: center; padding: 12px; font-weight: 600; color: #8b95a1; cursor: pointer; border-radius: 6px; font-size: 16px; }
+        .order-tab.active.buy { background: #f04452; color: #fff; }
+        .order-tab.active.sell { background: #3182f6; color: #fff; }
+        .order-tab.active.pend { background: #8b95a1; color: #fff; }
+        
+        .order-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 14px; }
+        .order-row span:first-child { color: #8b95a1; font-size: 15px; }
+        
+        .price-type-btns { display: flex; background: #2c2c2e; border-radius: 8px; padding: 3px; }
+        .price-type-btns button { padding: 8px 15px; font-size: 14px; color: #8b95a1; border-radius: 6px; }
+        .price-type-btns button.active { background: #4e4e51; color: #fff; font-weight: 600; }
+
+        .qty-input { display: flex; align-items: center; background: #121212; border-radius: 8px; border: 1px solid #3a3a3c; overflow: hidden; margin-top: 10px; }
+        .qty-input button { width: 45px; height: 45px; font-size: 20px; font-weight: bold; background: #2c2c2e; color: #8b95a1; }
+        .qty-input input { flex: 1; text-align: right; font-size: 16px; font-weight: 700; padding: 0 10px; color: #fff; }
+        
+        .percent-btns { display: flex; gap: 5px; margin: 20px 0; }
+        .percent-btns button { flex: 1; padding: 12px 0; background: #2c2c2e; color: #8b95a1; border-radius: 6px; font-size: 13px; }
+        
+        .order-summary { border-top: 1px solid #2c2c2e; padding-top: 20px; margin-top: auto; }
+        .my-asset-box { background: #1c1c1e; border-radius: 16px; padding: 25px; margin-top: 20px; }
+        .my-asset-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+        .my-asset-row span:first-child { color: #8b95a1; }
+        .my-asset-row span:last-child { font-weight: 600; color: #fff; }
+
+        #pending-orders-list { display: none; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto; }
+        .pending-item { background: #121212; border: 1px solid #2c2c2e; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* HOI 대형 이벤트 */
+        #hoi-event-popup { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 10000; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
+        .hoi-paper { background: #e3d5ba; color: #111; padding: 40px; border: 6px solid #333; max-width: 650px; width: 100%; box-shadow: 0 0 50px rgba(255,255,255,0.1); position: relative; display: flex; flex-direction: column; max-height: 90vh; }
+        .hoi-newspaper-header { font-family: 'Times New Roman', serif; font-size: 42px; font-weight: bold; border-bottom: 3px solid #111; margin-bottom: 10px; padding-bottom: 10px; text-align: center; text-transform: uppercase; letter-spacing: 2px; flex-shrink: 0; }
+        .hoi-scroll-area { flex: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 10px; }
+        .hoi-scroll-area::-webkit-scrollbar { width: 6px; }
+        .hoi-scroll-area::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+        .hoi-img { width: 100%; max-height: 300px; object-fit: cover; border: 2px solid #111; margin-bottom: 20px; display: none; border-radius: 4px; }
+        .hoi-content { font-size: 18px; line-height: 1.6; font-family: 'Times New Roman', serif; text-align: justify; white-space: pre-wrap; font-weight: 600; }
+        .hoi-btn { display: block; width: 100%; padding: 15px; background: #333; color: #fff; text-align: center; font-weight: bold; font-size: 16px; border: 2px solid #111; transition: background 0.2s; flex-shrink: 0; }
+        
+        /* 관리자 및 랭킹 */
+        .admin-box { background: #1c1c1e; padding: 25px; border-radius: 16px; margin-bottom: 20px; border:1px solid #2c2c2e; }
+        .admin-input { width: 100%; background: #121212; padding: 15px; border-radius: 8px; border: 1px solid #2c2c2e; margin-bottom: 15px; font-size: 14px; color: #fff; }
+        .admin-flex { display: flex; gap: 20px; }
+        .rank-list { background: #1c1c1e; border-radius: 16px; padding: 10px; }
+
+        /* 채팅 및 시스템 팝업 */
+        #chat-floating-btn { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: #fbee00; color: #3b1e1e; border-radius: 50%; font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 8999; font-weight: bold; transition: transform 0.2s; }
+        #chat-notify-badge { display: none; position: absolute; top: -2px; right: -2px; width: 22px; height: 22px; background: #f04452; color: #fff; border-radius: 50%; font-size: 13px; font-weight: bold; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        #chat-floating-btn:hover { transform: scale(1.1); }
+        #chat-widget { position: fixed; bottom: 30px; right: 30px; width: 360px; height: 650px; background: #18181a; border-radius: 20px; border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.8); display: flex; flex-direction: column; transform: translateY(120%); transition: transform 0.3s ease; z-index: 9000; overflow: hidden; }
+        #chat-widget.open { transform: translateY(0); }
+        #chat-header { background: #222; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; border-bottom: 1px solid #333; color: #fff; flex-shrink: 0; }
+        .chat-close-btn { background: transparent; color: #888; font-size: 20px; padding: 0; cursor: pointer; }
+        .chat-tabs { display: flex; background: #1c1c1e; border-bottom: 1px solid #333; flex-shrink: 0; }
+        .chat-tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; color: #888; font-size: 13px; font-weight: 600; }
+        .chat-tab.active { color: #fff; border-bottom: 2px solid #fbee00; }
+        
+        .chat-screen { display: none; flex: 1; overflow-y: auto; background: #121212; }
+        .chat-screen.active { display: flex; flex-direction: column; }
+        .chat-list-item { display: flex; align-items: center; padding: 12px 20px; cursor: pointer; border-bottom: 1px solid #1c1c1e; position:relative; }
+        .chat-list-item:hover { background: #2c2c2e; }
+        .chat-profile { width: 40px; height: 40px; border-radius: 16px; background: #333; display: flex; justify-content: center; align-items: center; margin-right: 15px; font-size: 14px; font-weight: bold; color: #fff; overflow:hidden; flex-shrink:0;}
+        .chat-profile img { width:100%; height:100%; object-fit:cover; }
+        .chat-info { flex: 1; overflow: hidden; }
+        .chat-name { font-size: 15px; font-weight: bold; color: #fff; margin-bottom: 3px; }
+        .chat-preview { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .btn-remit-small { position: absolute; right: 20px; background:#f04452; color:#fff; padding:6px 10px; border-radius:6px; font-size:12px; font-weight:bold; }
+
+        #chat-room-screen { display: none; flex: 1; flex-direction: column; background: #9bbbd4; overflow: hidden; }
+        #chat-room-header { background: #222; padding: 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #333; flex-shrink: 0; }
+        #chat-messages-area { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .chat-input-area { background: #fff; padding: 10px; display: flex; gap: 10px; flex-shrink: 0; }
+        .chat-input-area input { flex: 1; background: #f0f0f0; color: #000; border: none; border-radius: 20px; padding: 10px 15px; font-size:14px; }
+        .chat-input-area button { background: #fbee00; color: #000; border: none; border-radius: 20px; padding: 0 15px; font-weight: bold; }
+
+        .bubble-wrapper { display: flex; flex-direction: column; max-width: 80%; }
+        .bubble-wrapper.me { align-self: flex-end; align-items: flex-end; }
+        .bubble-wrapper.other { align-self: flex-start; align-items: flex-start; }
+        .bubble-sender { font-size: 11px; color: #555; margin-bottom: 3px; margin-left: 5px; }
+        .chat-bubble { padding: 8px 12px; border-radius: 12px; font-size: 14px; color: #000; line-height: 1.4; word-break: break-all; }
+        .bubble-wrapper.me .chat-bubble { background: #fbee00; border-top-right-radius: 4px; }
+        .bubble-wrapper.other .chat-bubble { background: #fff; border-top-left-radius: 4px; }
+
+        .chat-news-card { background: #fff; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; cursor: pointer; width: 220px; text-decoration: none; color: #000; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+        .chat-news-card img { width: 100%; height: 120px; object-fit: cover; display: block; border-bottom: 1px solid #eee; }
+        .chat-news-card .card-text { padding: 10px; }
+        .chat-news-card h4 { margin: 0 0 5px 0; font-size: 13px; font-weight: bold; color: #000; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .chat-news-card p { margin: 0; font-size: 11px; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        #chat-article-screen { display: none; flex: 1; flex-direction: column; background: #fff; color: #000; overflow-y: auto; }
+        #chat-article-header { background: #f0f0f0; padding: 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #ddd; position: sticky; top: 0; }
+        .article-content-area { padding: 20px; }
+        .article-content-area img { width: 100%; border-radius: 8px; margin-bottom: 15px; max-height:200px; object-fit:cover; }
+        .article-content-area h2 { font-size: 18px; margin-bottom: 15px; line-height: 1.4; color: #000; font-weight:bold; }
+        .article-content-area p { font-size: 14px; line-height: 1.6; color: #333; white-space: pre-wrap; }
+
+        /* 다목적 모달 */
+        #custom-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 10001; justify-content: center; align-items: center; }
+        .custom-modal-box { background: #1c1c1e; width: 350px; padding: 25px; border-radius: 16px; border: 1px solid #333; }
+        .custom-modal-box h3 { color: #fff; margin-bottom: 15px; text-align: center; }
+        .custom-modal-box input { width: 100%; background: #121212; border: 1px solid #2c2c2e; color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+        .custom-modal-box select { width: 100%; background: #121212; border: 1px solid #2c2c2e; color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 15px; height:120px; }
+        .modal-btns { display: flex; gap: 10px; }
+        .modal-btns button { flex: 1; padding: 12px; font-weight: bold; }
+
+        /* 🌟 모바일 반응형 처리 */
+        #mobile-menu-btn { display: none; position: absolute; top: 15px; left: 15px; z-index: 8000; background: #2c2c2e; color: #fff; padding: 10px 15px; font-size: 16px; border-radius: 8px; font-weight: bold; border: 1px solid #3a3a3c; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        #mobile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 8999; }
+        
+        @media (max-width: 768px) {
+            #mobile-menu-btn { display: block; }
+            #sidebar { position: fixed; left: -340px; top: 0; bottom: 0; transition: left 0.3s ease; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }
+            #sidebar.open { left: 0; }
+            
+            #main-content { padding: 70px 15px 20px 15px; }
+            .section-title { font-size: 18px; }
+            .admin-flex { flex-direction: column; gap: 10px; }
+            
+            #stock-modal-overlay { padding: 15px; }
+            #stock-modal-content { height: 95vh; max-height: 95vh; border-radius: 16px; border: 1px solid #2c2c2e; }
+            .modal-header-bar { padding: 15px; }
+            .dt-scroll-area { padding: 15px; }
+            .dt-name { font-size: 22px; }
+            .dt-price { font-size: 26px; margin-bottom: 15px; }
+            .dt-grid { grid-template-columns: 1fr; gap: 15px; }
+            .dt-chart-wrap { height: 250px; padding: 10px; margin-bottom: 10px; }
+            .order-box { padding: 15px; }
+            .my-asset-box { padding: 15px; margin-top: 10px; }
+            
+            #chat-widget { width: 100%; height: 100%; bottom: 0; right: 0; border-radius: 0; }
+            #chat-floating-btn { bottom: 20px; right: 20px; }
+            
+            .hoi-paper { padding: 20px; width: 90%; }
+            .hoi-newspaper-header { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="sys-alert">알림</div>
+
+    <!-- 모바일 사이드바 배경 -->
+    <div id="mobile-overlay"></div>
+
+    <div id="custom-modal-overlay">
+        <!-- 송금 모달 -->
+        <div id="remit-box" class="custom-modal-box" style="display:none;">
+            <h3><span id="remit-target-nick" class="c-blue">대상</span>님에게 송금</h3>
+            <input type="number" id="inp-remit-amount" placeholder="보낼 금액 (원)">
+            <div class="modal-btns">
+                <button style="background:#3a3a3c; color:#fff;" onclick="document.getElementById('custom-modal-overlay').style.display='none'">취소</button>
+                <button class="bg-blue" id="btn-exec-remit">송금하기</button>
+            </div>
+        </div>
+        <!-- 그룹방 생성 모달 -->
+        <div id="create-room-box" class="custom-modal-box" style="display:none;">
+            <h3>새 그룹 채팅방 만들기</h3>
+            <input type="text" id="inp-room-title" placeholder="채팅방 이름">
+            <span style="color:#8b95a1; font-size:12px; display:block; margin-bottom:5px;">초대할 유저 다중 선택 (Ctrl/Cmd 클릭)</span>
+            <select id="sel-room-users" multiple style="height:120px;"></select>
+            <div class="modal-btns">
+                <button style="background:#3a3a3c; color:#fff;" onclick="document.getElementById('custom-modal-overlay').style.display='none'">취소</button>
+                <button class="bg-blue" id="btn-exec-create-room">개설하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 대형 이벤트 팝업 (HOI) -->
+    <div id="hoi-event-popup">
+        <div class="hoi-paper">
+            <div class="hoi-newspaper-header" id="hoi-event-title">THE DAILY STONKS</div>
+            <div style="text-align:right; font-size:12px; margin-bottom:10px; color:#333; font-weight:bold; flex-shrink:0;" id="hoi-event-time">발행일: -</div>
+            <div class="hoi-scroll-area">
+                <img id="hoi-event-img" class="hoi-img" src="" alt="뉴스 이미지">
+                <div class="hoi-content" id="hoi-event-content">이벤트 내용</div>
+            </div>
+            <button class="hoi-btn" id="btn-close-hoi">확인 (시장에 반영됨)</button>
+        </div>
+    </div>
+
+    <!-- 1. 인증 화면 -->
+    <div id="auth-screen">
+        <div class="auth-box" id="login-box">
+            <h2>Pax Economica</h2>
+            <div class="beta-badge">beta 1.0.5</div>
+            <input type="text" id="inp-id" placeholder="아이디">
+            <input type="password" id="inp-pw" placeholder="비밀번호">
+            <button class="bg-blue exec" id="btn-login-exec">로그인</button>
+            <button class="toggle-btn" id="btn-toggle-reg">계정이 없으신가요? 회원가입</button>
+            <div class="creator-mark">제작 나나세</div>
+        </div>
+        <div class="auth-box" id="reg-box" style="display:none;">
+            <h2>새 계정 만들기</h2>
+            <input type="text" id="reg-id" placeholder="사용할 아이디">
+            <input type="password" id="reg-pw" placeholder="비밀번호">
+            <input type="text" id="reg-nick" placeholder="게임 닉네임">
+            <button class="bg-blue exec" id="btn-reg-exec">가입하기</button>
+            <button class="toggle-btn" id="btn-toggle-login">로그인 화면으로 돌아가기</button>
+            <div class="creator-mark">제작 나나세</div>
+        </div>
+    </div>
+
+    <!-- 2. 게임 화면 -->
+    <div id="game-screen">
+        <!-- [ 사이드바 ] -->
+        <div id="sidebar">
+            <div class="sidebar-scroll">
+                <div class="sidebar-nav">
+                    <button id="nav-market" class="active">주식 거래소</button>
+                    <button id="nav-estate">부동산 매물</button>
+                    <button id="nav-rank">실시간 순위표</button>
+                    <button id="nav-admin" style="display:none; color:#f04452;">관리자 콘솔</button>
+                </div>
+                
+                <div class="account-box">
+                    <div class="acc-header">
+                        <span style="display:flex; align-items:center; gap:8px;">
+                            <div id="ui-my-profile-img" style="width:24px; height:24px; border-radius:50%; background:#333; display:flex; justify-content:center; align-items:center; overflow:hidden;"></div>
+                            <span id="ui-nick" style="color:#fff;"></span>
+                        </span>
+                        <button style="background:#2c2c2e; padding:4px 8px; border-radius:4px; font-size:12px; color:#fff;" id="btn-home">원</button>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size:13px; color:#8b95a1; margin-bottom:5px;">보유 현금</div>
+                        <div style="font-size:24px; font-weight:700; color:#fff;" id="ui-cash">0원</div>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-size:13px; color:#8b95a1; margin-bottom:5px;">내 투자 (주식)</div>
+                        <div style="font-size:20px; font-weight:700; color:#fff; margin-bottom:5px;" id="ui-stock-total">0원</div>
+                        <div style="font-size:14px; font-weight:600;" id="ui-stock-return">0원 (0%)</div>
+                    </div>
+
+                    <div class="sb-list-header">
+                        <span>보유 자산</span>
+                        <div class="toggle-group">
+                            <button id="btn-mode-price" class="active">현재가</button>
+                            <button id="btn-mode-eval">평가금</button>
+                        </div>
+                    </div>
+                    <div id="ui-stock-list"></div>
+                </div>
+            </div>
+            
+            <!-- 좌측 하단 미니 속보 패널 -->
+            <div class="sidebar-news">
+                <div class="sidebar-news-header">
+                    <span>📰 실시간 속보</span>
+                </div>
+                <div class="sidebar-news-list" id="news-list-body">
+                    <div style="color:#8b95a1; text-align:center; font-size:13px; margin-top:20px;">최근 뉴스가 없습니다.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- [ 메인 콘텐츠 ] -->
+        <div id="main-wrapper">
+            <div id="main-content">
+                <button id="mobile-menu-btn">☰ 메뉴</button>
+                
+                <!-- 뷰 1: 종합 시장 -->
+                <div id="view-market" class="view active">
+                    <h1 class="section-title">종합 차트 <span style="font-size:14px; color:#8b95a1; font-weight:normal; margin-left:10px;" id="ui-engine-status">서버 대기 중</span></h1>
+                    <div class="global-chart-wrap"><canvas id="canvas-global"></canvas></div>
+
+                    <h1 class="section-title">실시간 차트</h1>
+                    <table class="market-table">
+                        <thead><tr><th>종목명</th><th>현재가</th><th>등락률</th></tr></thead>
+                        <tbody id="ui-market-table"></tbody>
+                    </table>
+                </div>
+
+                <!-- 뷰 2: 부동산 -->
+                <div id="view-estate" class="view">
+                    <h1 class="section-title">부동산 및 실물 자산</h1>
+                    <p style="color:#8b95a1; margin-bottom:20px;">* 현재 부동산 시스템은 개발중입니다. (간단한 매매 기능만 제공)</p>
+                    <div class="estate-grid" id="ui-estate-grid"></div>
+                </div>
+
+                <!-- 뷰 3: 랭킹 -->
+                <div id="view-rank" class="view">
+                    <h1 class="section-title">실시간 순위표</h1>
+                    <div class="rank-list" id="ui-rank-list"></div>
+                </div>
+
+                <!-- 뷰 4: 관리자 -->
+                <div id="view-admin" class="view">
+                    <h1 class="section-title c-red">GM 관리자 콘솔</h1>
+                    
+                    <div class="admin-box admin-flex">
+                        <div style="flex:1;">
+                            <h3 style="margin-bottom:15px; color:#fff;">1. 유저 자산 제어</h3>
+                            <select id="admin-target-user" class="admin-input"><option value="">조작할 유저 선택</option></select>
+                            <select id="admin-target-asset" class="admin-input"><option value="cash">현금 (Cash)</option></select>
+                            <input type="number" id="admin-target-amount" class="admin-input" placeholder="지급/차감 수량 (+/- 입력)">
+                            <button class="bg-gray" id="btn-admin-modify" style="width:100%; padding:15px;">해당 자산 강제 조작</button>
+                        </div>
+                        <div style="flex:1;">
+                            <h3 style="margin-bottom:15px; color:#fff;">2. 시장 변동 엔진</h3>
+                            <p style="color:#8b95a1; margin-bottom:10px;">엔진 가동 시 모든 접속 유저 중 1명이 호스트가 되어 시세를 변동시킵니다.</p>
+                            <button class="bg-red" id="btn-engine" style="width:100%; padding:15px; font-size:16px;">엔진 켜기</button>
+                        </div>
+                    </div>
+
+                    <div class="admin-box">
+                        <h3 style="margin-bottom:15px; color:#fff;">3. ✨ 대형 이벤트 뉴스 (강제 시세 조작)</h3>
+                        <p style="color:#8b95a1; margin-bottom:15px;">전체 카톡 공유 및 HOI 팝업이 연출되며, 주가가 목표가를 향해 요동칩니다.</p>
+                        
+                        <input type="text" id="admin-news-title" class="admin-input" placeholder="뉴스 제목 (예: 국가 부도 사태 발생!)">
+                        <textarea id="admin-news-content" class="admin-input" placeholder="뉴스 내용 본문" style="height:80px; resize:vertical;"></textarea>
+                        
+                        <label class="file-upload-btn">
+                            <input type="file" id="admin-news-file" accept="image/*" style="display:none;">📸 기사 썸네일 이미지 첨부하기
+                        </label>
+                        <img id="admin-news-preview" style="max-height:100px; display:none; margin-bottom:15px; border-radius:8px;">
+
+                        <div class="admin-flex" style="margin-bottom:15px;">
+                            <select id="admin-news-target" class="admin-input" style="flex:1; margin:0;"><option value="ALL_STOCKS">[전체 주식 시장 적용]</option></select>
+                            <input type="number" id="admin-news-impact" class="admin-input" placeholder="목표 증감률 (예: 폭락은 -20, 폭등은 30)" style="flex:1; margin:0;">
+                        </div>
+
+                        <button class="bg-blue" id="btn-trigger-manual" style="width:100%; padding:15px; font-size:16px;">이벤트 발행 및 시장 조작</button>
+                    </div>
+
+                    <div class="admin-box">
+                        <h3 style="margin-bottom:15px; color:#fff;">4. 📉 주가 강제 조작 (뉴스 없음)</h3>
+                        <div class="admin-flex" style="margin-bottom:15px;">
+                            <select id="admin-manipulate-target" class="admin-input" style="flex:1; margin:0;"><option value="ALL_STOCKS">[전체 주식 시장 적용]</option></select>
+                            <input type="number" id="admin-manipulate-impact" class="admin-input" placeholder="목표 증감률 (예: 폭락은 -20, 폭등은 30)" style="flex:1; margin:0;">
+                        </div>
+                        <button class="bg-red" id="btn-trigger-manipulate" style="width:100%; padding:15px; font-size:16px;">조작 명령 하달</button>
+                    </div>
+
+                    <div class="admin-box">
+                        <h3 style="margin-bottom:15px; color:#fff;">5. 신규 종목 상장</h3>
+                        <div class="admin-flex" style="margin-bottom:15px;">
+                            <select id="admin-new-type" class="admin-input" style="flex:0.5; margin:0;"><option value="주식">주식</option><option value="부동산">부동산</option></select>
+                            <input type="text" id="admin-new-name" class="admin-input" placeholder="종목명" style="flex:1; margin:0;">
+                            <input type="number" id="admin-new-price" class="admin-input" placeholder="시작 가격" style="flex:1; margin:0;">
+                        </div>
+                        <button class="bg-gray" id="btn-admin-addstock" style="width:100%; padding:15px;">시장 상장하기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==============================================
+             🔥 상세 거래창 (모달 오버레이 방식) 
+             ============================================== -->
+        <div id="stock-modal-overlay">
+            <div id="stock-modal-content">
+                <div class="modal-header-bar">
+                    <span style="font-weight:700; color:#fff; font-size:16px;">종목 상세</span>
+                    <button class="modal-close" id="btn-close-modal">✕</button>
+                </div>
+                
+                <div class="dt-scroll-area">
+                    <div class="dt-name"><span class="sb-icon" id="dt-icon" style="width:40px;height:40px;font-size:18px;"></span> <span id="dt-name">종목명</span></div>
+                    <div class="dt-desc" id="dt-desc" style="color:#8b95a1; margin-bottom:15px;">관련 섹터 정보</div>
+                    <div class="dt-price" id="dt-price-wrap"><span id="dt-price-val" style="color:#fff;">0원</span> <span style="font-size:16px; margin-left:10px; font-weight:600;" id="dt-change">0%</span></div>
+                    
+                    <div class="dt-grid">
+                        <!-- 좌측: 캔들스틱 차트 & 포트폴리오 -->
+                        <div>
+                            <div class="dt-chart-wrap"><canvas id="canvas-detail"></canvas></div>
+                            
+                            <div class="my-asset-box" id="dt-my-asset-box">
+                                <h3 style="font-size:16px; color:#fff; margin-bottom:20px;">내 자산</h3>
+                                <div class="my-asset-row"><span>보유 수량</span><span id="dt-my-amount" style="color:#fff;">0주</span></div>
+                                <div class="my-asset-row"><span>1주 평균금액</span><span id="dt-my-avg" style="color:#fff;">0원</span></div>
+                                <div class="my-asset-row"><span>투자 원금</span><span id="dt-my-invested" style="color:#fff;">0원</span></div>
+                                <div style="border-top:1px solid #2c2c2e; padding-top:15px; margin-top:15px; display:flex; justify-content:space-between;">
+                                    <span style="color:#8b95a1; font-size:14px;">총 금액</span>
+                                    <div style="text-align:right;">
+                                        <div id="dt-my-total" style="font-size:20px; color:#fff; font-weight:700;">0원</div>
+                                        <div id="dt-my-return" style="font-size:14px; margin-top:3px; font-weight:600;">0원 (0%)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="my-asset-box" id="dt-my-empty-box" style="text-align:center; color:#8b95a1;">
+                                보유 내역이 없습니다.
+                            </div>
+                        </div>
+                        
+                        <!-- 우측: 거래 폼 -->
+                        <div class="order-panel">
+                            <div class="order-box">
+                                <div class="order-tabs">
+                                    <div class="order-tab active buy" id="tab-buy">구매</div>
+                                    <div class="order-tab sell" id="tab-sell">판매</div>
+                                    <div class="order-tab pend" id="tab-pend">예약 확인</div>
+                                </div>
+                                
+                                <div id="order-form-area">
+                                    <div class="order-row">
+                                        <span>주문 방식</span>
+                                        <div class="price-type-btns">
+                                            <button id="btn-type-limit" class="active">지정가 (예약)</button>
+                                            <button id="btn-type-market">시장가 (즉시)</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="order-row" id="limit-price-row">
+                                        <div class="qty-input" style="flex:1;">
+                                            <button style="border-right:1px solid #3a3a3c;" id="btn-limit-minus">-</button>
+                                            <input type="number" id="dt-target-price" value="0">
+                                            <button style="border-left:1px solid #3a3a3c;" id="btn-limit-plus">+</button>
+                                        </div>
+                                    </div>
+                                    <div class="order-row" id="market-price-row" style="display:none;">
+                                        <div class="qty-input" style="flex:1;">
+                                            <input type="text" id="dt-market-price-show" readonly value="0원" style="flex:1; text-align:right; color:#8b95a1; padding-right:15px; cursor:not-allowed;">
+                                        </div>
+                                    </div>
+
+                                    <div class="order-row" style="margin-top: 25px;">
+                                        <span>수량</span>
+                                        <div class="qty-input">
+                                            <button id="btn-qty-minus">-</button>
+                                            <input type="number" id="inp-qty" value="1" min="1">
+                                            <button id="btn-qty-plus">+</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="percent-btns">
+                                        <button class="btn-pct" data-pct="0.1">10%</button>
+                                        <button class="btn-pct" data-pct="0.25">25%</button>
+                                        <button class="btn-pct" data-pct="0.5">50%</button>
+                                        <button class="btn-pct" data-pct="1">최대</button>
+                                    </div>
+                                    
+                                    <div class="order-summary">
+                                        <div class="order-row"><span id="dt-avail-label">가용 자산</span><span id="dt-avail-val" style="color:#fff; font-weight:600;">0원</span></div>
+                                        <div class="order-row" style="margin-top:15px; font-size:16px;">
+                                            <span style="color:#8b95a1;">총 주문 금액</span>
+                                            <span id="dt-total-val" style="color:#fff; font-size:22px; font-weight:700;">0원</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <button class="bg-red" id="btn-execute" style="width:100%; padding:20px; font-size:18px; border-radius:12px; margin-top:10px;">예약 매수하기</button>
+                                </div>
+
+                                <!-- 지정가 대기 내역 탭 -->
+                                <div id="pending-orders-list" style="display:none; flex-direction:column; gap:10px; max-height:300px; overflow-y:auto;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 채팅 위젯 -->
+    <div id="chat-floating-btn">
+        💬
+        <div id="chat-notify-badge">!</div>
+    </div>
+    
+    <div id="chat-widget">
+        <div id="chat-header">
+            <span>스마트폰</span>
+            <button class="chat-close-btn" id="btn-close-chat">✕</button>
+        </div>
+        <div class="chat-tabs">
+            <div class="chat-tab active" id="chat-tab-friends">연락처</div>
+            <div class="chat-tab" id="chat-tab-rooms">채팅방</div>
+            <div class="chat-tab" id="chat-tab-host" style="display:none; color:#f04452;">감청</div>
+            <div class="chat-tab" id="chat-tab-profile">프로필</div>
+        </div>
+
+        <div class="chat-screen active" id="chat-screen-friends"></div>
+        
+        <div class="chat-screen" id="chat-screen-rooms">
+            <div style="padding:10px;">
+                <button class="bg-blue" style="width:100%; padding:10px; font-size:12px;" id="btn-open-create-room">+ 새 그룹 채팅방 만들기</button>
+            </div>
+            <div class="chat-list-item" id="btn-global-chat">
+                <div class="chat-profile" style="background:#fbee00; color:#000;">ALL</div>
+                <div class="chat-info"><div class="chat-name">전체 채팅방 (광장)</div><div class="chat-preview">모든 유저가 참여하는 공간입니다.</div></div>
+            </div>
+            <div id="private-rooms-list"></div>
+        </div>
+        
+        <div class="chat-screen" id="chat-screen-host">
+            <div style="padding:15px; color:#f04452; font-size:12px; border-bottom:1px solid #333;">모든 1:1 비밀 채팅 실시간 감시 중</div>
+            <div id="host-rooms-list"></div>
+        </div>
+        
+        <div class="chat-screen" id="chat-screen-profile">
+            <div class="profile-box">
+                <div style="background:#1c1c1e; padding:20px; border-radius:12px; border:1px solid #2c2c2e; margin-bottom:20px;">
+                    <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:20px;">
+                        <div id="profile-preview-box" style="width:80px; height:80px; border-radius:50%; background:#333; display:flex; justify-content:center; align-items:center; margin-bottom:10px; overflow:hidden;"></div>
+                        <label class="file-upload-btn" style="width:100%; font-size:12px;">
+                            <input type="file" id="inp-profile-file" accept="image/*" style="display:none;">
+                            📸 내 프로필 사진 변경
+                        </label>
+                    </div>
+
+                    <label style="font-size:12px; color:#8b95a1; display:block; margin-bottom:8px;">닉네임 변경</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="inp-change-nick" placeholder="새로운 닉네임" style="margin:0; flex:1; background:#2c2c2e; padding:12px; border-radius:8px; border:1px solid #3a3a3c; color:#fff; outline:none;">
+                        <button class="bg-blue" id="btn-save-nick" style="margin:0; padding:12px 20px;">저장</button>
+                    </div>
+                </div>
+                
+                <div style="background:#1c1c1e; padding:20px; border-radius:12px; border:1px solid #2c2c2e;">
+                    <label style="font-size:12px; color:#f04452; display:block; margin-bottom:8px;">위험 구역</label>
+                    <button class="bg-red" id="btn-delete-account" style="width:100%; margin:0; padding:14px;">계정 영구 삭제 (탈퇴)</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-room-screen">
+            <div id="chat-room-header">
+                <button class="chat-close-btn" style="color:#fff;" id="btn-chat-back">◀</button>
+                <span id="chat-room-title" style="color:#fff; font-weight:bold; margin-left:10px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">채팅방</span>
+            </div>
+            <div id="chat-messages-area"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-msg-input" placeholder="메시지 입력...">
+                <button id="btn-chat-send">전송</button>
+            </div>
+        </div>
+
+        <div id="chat-article-screen">
+            <div id="chat-article-header">
+                <button class="chat-close-btn" style="color:#000;" id="btn-article-back">◀</button>
+                <span style="font-weight:bold; margin-left:10px; color:#000;">인터넷 기사</span>
+            </div>
+            <div class="article-content-area" id="article-content-area"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK 및 핵심 시스템 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, addDoc, onSnapshot, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // 사용자 제공 API Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvXHrqIvo0nw8RqjxmQUWYbVvXRrkVYes",
+            authDomain: "stonks-trpg.firebaseapp.com",
+            projectId: "stonks-trpg",
+            storageBucket: "stonks-trpg.firebasestorage.app",
+            messagingSenderId: "734798023831",
+            appId: "1:734798023831:web:fda7e68ec21c2dea3f2dd2"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        // 🌟 v15 데이터베이스 유지 
+        const myAppId = "pax-economica-v15"; 
+        const usersCol = collection(db, 'artifacts', myAppId, 'public', 'data', 'users');
+        const marketCol = collection(db, 'artifacts', myAppId, 'public', 'data', 'market');
+        const chatCol = collection(db, 'artifacts', myAppId, 'public', 'data', 'chat');
+        const roomsCol = collection(db, 'artifacts', myAppId, 'public', 'data', 'rooms');
+
+        window.G = {
+            uid: null, user: null, market: null, targetItem: null, orderType: 'BUY', priceType: 'LIMIT',
+            engineTimer: null, sbMode: 'price', chatMessages: [], chatRooms: [], currentChatRoom: null, usersList: [], localLastSeen: null,
+            msgCount: 0, isChatOpen: false
+        };
+        
+        let cDetail = null, cGlobal = null;
+        // 종합 차트 가독성 향상 (20종 고대비 컬러)
+        const colors = ['#f04452', '#3182f6', '#20c997', '#f6c000', '#a881e6', '#ff8a65', '#4cd964', '#007aff', '#ff9f0a', '#bf5af2', '#32ade6', '#ff3b30', '#ffcc00', '#00c7be', '#e5b22b', '#f5428d', '#02b875', '#a49880', '#00ffff', '#ff66ff'];
+
+        // 한국 캔들스틱 설정 (상승:빨강, 하락:파랑)
+        if (Chart && Chart.defaults && Chart.defaults.elements && Chart.defaults.elements.candlestick) {
+            Chart.defaults.elements.candlestick.color = { up: '#f04452', down: '#3182f6', unchanged: '#8b95a1' };
+            Chart.defaults.elements.candlestick.borderColor = { up: '#f04452', down: '#3182f6', unchanged: '#8b95a1' };
+        }
+
+        window.showAlert = (msg) => {
+            const b = document.getElementById('sys-alert');
+            if(b) { b.innerText = msg; b.style.display = 'block'; setTimeout(() => b.style.display = 'none', 3000); }
+        };
+        const fMoney = (n) => Math.floor(n).toLocaleString() + "원";
+        const fPct = (n) => (isNaN(n) || !isFinite(n)) ? "0.00%" : (n > 0 ? "+" : "") + n.toFixed(2) + "%";
+
+        function resizeAndEncodeImage(file, maxW, maxH, callback) {
+            let reader = new FileReader();
+            reader.onloadend = function() {
+                let img = new Image();
+                img.onload = function() {
+                    let canvas = document.createElement('canvas');
+                    let ctx = canvas.getContext('2d');
+                    let w = img.width, h = img.height;
+                    if(w > maxW) { h *= maxW/w; w = maxW; }
+                    if(h > maxH) { w *= maxH/h; h = maxH; }
+                    canvas.width = w; canvas.height = h;
+                    ctx.drawImage(img, 0, 0, w, h);
+                    callback(canvas.toDataURL('image/jpeg', 0.8));
+                }
+                img.src = reader.result;
+            }
+            reader.readAsDataURL(file);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            signInAnonymously(auth).catch(() => window.showAlert("서버 연결 실패"));
+            bindEvents();
+        });
+
+        function bindEvents() {
+            const b = (id, fn) => document.getElementById(id)?.addEventListener('click', fn);
+            b('btn-toggle-reg', () => { document.getElementById('login-box').style.display='none'; document.getElementById('reg-box').style.display='block'; });
+            b('btn-toggle-login', () => { document.getElementById('reg-box').style.display='none'; document.getElementById('login-box').style.display='block'; });
+            b('btn-reg-exec', () => window.doRegister());
+            b('btn-login-exec', () => window.doLogin());
+
+            b('nav-market', () => window.goView('market'));
+            b('nav-estate', () => window.goView('estate'));
+            b('nav-rank', () => window.goView('rank'));
+            b('nav-admin', () => window.goView('admin'));
+            b('btn-home', () => window.goView('market'));
+
+            b('btn-mode-price', () => window.setSidebarMode('price'));
+            b('btn-mode-eval', () => window.setSidebarMode('eval'));
+
+            b('btn-close-modal', () => window.closeDetail());
+            document.getElementById('stock-modal-overlay')?.addEventListener('click', (e) => { if(e.target.id === 'stock-modal-overlay') window.closeDetail(); });
+
+            b('tab-buy', () => window.setOrderType('BUY'));
+            b('tab-sell', () => window.setOrderType('SELL'));
+            b('tab-pend', () => window.setOrderType('PEND'));
+            b('btn-type-market', () => window.setPriceType('MARKET'));
+            b('btn-type-limit', () => window.setPriceType('LIMIT'));
+
+            b('btn-limit-minus', () => window.adjustLimitPrice(-1000));
+            b('btn-limit-plus', () => window.adjustLimitPrice(1000));
+            b('btn-qty-minus', () => window.adjustQty(-1));
+            b('btn-qty-plus', () => window.adjustQty(1));
+            document.getElementById('inp-qty')?.addEventListener('input', () => window.calcSummary());
+            document.getElementById('dt-target-price')?.addEventListener('input', () => window.calcSummary());
+            b('btn-execute', () => window.executeOrder());
+
+            document.querySelectorAll('.btn-pct').forEach(btn => { btn.addEventListener('click', (e) => window.calcMaxQty(parseFloat(e.target.dataset.pct))); });
+
+            document.getElementById('ui-market-table')?.addEventListener('click', (e) => { const r = e.target.closest('.stock-list-row'); if(r) window.openDetail(r.dataset.name); });
+            document.getElementById('ui-estate-grid')?.addEventListener('click', (e) => { const c = e.target.closest('.estate-card'); if(c) window.openDetail(c.dataset.name); });
+            document.getElementById('ui-stock-list')?.addEventListener('click', (e) => { const i = e.target.closest('.sb-item'); if(i) window.openDetail(i.dataset.name); });
+            document.getElementById('news-list-body')?.addEventListener('click', (e) => { const n = e.target.closest('.sb-news-item'); if(n) window.openArticleFromId(n.dataset.id); });
+
+            b('btn-engine', () => window.toggleEngine());
+            b('btn-trigger-manual', () => window.triggerManualNews());
+            b('btn-trigger-manipulate', () => window.triggerManipulateOnly());
+            b('btn-admin-addstock', () => window.adminAddStock());
+            b('btn-admin-modify', () => window.adminModifyAsset());
+
+            b('chat-floating-btn', () => { 
+                document.getElementById('chat-widget').classList.add('open'); 
+                document.getElementById('chat-floating-btn').style.display='none'; 
+                document.getElementById('chat-notify-badge').style.display='none';
+                window.G.isChatOpen = true;
+            });
+            b('btn-close-chat', () => { 
+                document.getElementById('chat-widget').classList.remove('open'); 
+                document.getElementById('chat-floating-btn').style.display='flex'; 
+                window.G.isChatOpen = false;
+            });
+            b('chat-tab-friends', () => window.switchChatTab('friends'));
+            b('chat-tab-rooms', () => window.switchChatTab('rooms'));
+            b('chat-tab-host', () => window.switchChatTab('host'));
+            b('chat-tab-profile', () => window.switchChatTab('profile'));
+
+            b('btn-global-chat', () => window.openChatRoom('global', '전체 채팅방 (광장)'));
+            b('btn-open-create-room', () => window.openCreateRoomModal());
+            b('btn-exec-create-room', () => window.execCreateRoom());
+            b('btn-exec-remit', () => window.execRemit());
+            b('btn-cancel-room', () => document.getElementById('custom-modal-overlay').style.display='none');
+            b('btn-cancel-remit', () => document.getElementById('custom-modal-overlay').style.display='none');
+            b('btn-close-hoi', async () => { 
+                document.getElementById('hoi-event-popup').style.display='none'; 
+                if(window.G.uid && window.G.market?.majorEvent) {
+                    try { await updateDoc(doc(usersCol, window.G.uid), { lastSeenEvent: window.G.market.majorEvent.id }); } catch(e) {}
+                }
+            });
+
+            b('btn-chat-back', () => window.closeChatRoom());
+            b('btn-article-back', () => window.closeArticle());
+            b('btn-chat-send', () => window.sendChatMessage());
+            document.getElementById('chat-msg-input')?.addEventListener('keypress', (e) => { if(e.key === 'Enter') window.sendChatMessage(); });
+
+            b('btn-save-nick', () => window.changeProfile());
+            b('btn-delete-account', () => window.deleteAccount());
+
+            document.getElementById('chat-screen-friends')?.addEventListener('click', (e) => {
+                if(e.target.closest('.btn-remit-small')) {
+                    const item = e.target.closest('.chat-list-item');
+                    window.openRemitModal(item.dataset.target, item.dataset.nick);
+                    return;
+                }
+                const item = e.target.closest('.chat-list-item');
+                if(item && item.dataset.target) window.openChatRoom(window.getRoomId(window.G.uid, item.dataset.target), `${item.dataset.nick}님과의 대화`);
+            });
+            const handleRoomClick = (e) => { const item = e.target.closest('.chat-list-item'); if(item && item.dataset.room) window.openChatRoom(item.dataset.room, item.dataset.title); };
+            document.getElementById('private-rooms-list')?.addEventListener('click', handleRoomClick);
+            document.getElementById('host-rooms-list')?.addEventListener('click', handleRoomClick);
+            
+            document.getElementById('chat-messages-area')?.addEventListener('click', (e) => { const card = e.target.closest('.chat-news-card'); if(card && card.dataset.id) window.openArticleFromId(card.dataset.id); });
+
+            document.getElementById('admin-news-file')?.addEventListener('change', (e) => {
+                if(e.target.files[0]) resizeAndEncodeImage(e.target.files[0], 600, 400, (b64) => { window.G.tempNewsImg = b64; document.getElementById('admin-news-preview').src = b64; document.getElementById('admin-news-preview').style.display = 'block'; });
+            });
+            document.getElementById('inp-profile-file')?.addEventListener('change', (e) => {
+                if(e.target.files[0]) resizeAndEncodeImage(e.target.files[0], 200, 200, (b64) => { window.G.tempProfileImg = b64; document.getElementById('profile-preview-box').innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover;">`; });
+            });
+
+            // 🌟 모바일 메뉴 토글
+            b('mobile-menu-btn', () => {
+                document.getElementById('sidebar').classList.add('open');
+                document.getElementById('mobile-overlay').style.display = 'block';
+            });
+            b('mobile-overlay', () => {
+                document.getElementById('sidebar').classList.remove('open');
+                document.getElementById('mobile-overlay').style.display = 'none';
+            });
+        }
+
+        window.goView = (vId) => {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + vId)?.classList.add('active');
+            document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById('nav-' + vId); if(btn) btn.classList.add('active');
+            
+            // 모바일 화면일 때, 메뉴 이동 시 사이드바 닫기
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('mobile-overlay').style.display = 'none';
+
+            if(vId === 'market' && cGlobal) cGlobal.update();
+        };
+
+        window.doRegister = async () => {
+            const id = document.getElementById('reg-id').value.trim(); const pw = document.getElementById('reg-pw').value.trim(); const nick = document.getElementById('reg-nick').value.trim();
+            if(!id || !pw || !nick) return window.showAlert("모두 입력하세요.");
+            const ref = doc(usersCol, id);
+            try {
+                if((await getDoc(ref)).exists()) return window.showAlert("이미 있는 ID입니다.");
+                await setDoc(ref, { pw, nick, isHost: (id === 'nsd135740'), cash: 3000000, principal: 3000000, assets: {}, pendingOrders: [], profileImg: "" });
+                window.showAlert("가입 완료! 로그인 하세요.");
+                document.getElementById('btn-toggle-login').click();
+            } catch (e) { window.showAlert("DB 연결 실패"); }
+        };
+
+        window.doLogin = async () => {
+            const id = document.getElementById('inp-id').value.trim(); const pw = document.getElementById('inp-pw').value.trim();
+            if(!id || !pw) return window.showAlert("입력해주세요.");
+            try {
+                const snap = await getDoc(doc(usersCol, id));
+                if(snap.exists() && snap.data().pw === pw) {
+                    window.G.uid = id;
+                    document.getElementById('auth-screen').style.display = 'none'; document.getElementById('game-screen').style.display = 'flex';
+                    if(snap.data().isHost) { document.getElementById('nav-admin').style.display = 'block'; document.getElementById('chat-tab-host').style.display = 'block'; }
+                    document.getElementById('inp-change-nick').value = snap.data().nick;
+                    if(snap.data().profileImg) document.getElementById('profile-preview-box').innerHTML = `<img src="${snap.data().profileImg}" style="width:100%;height:100%;object-fit:cover;">`;
+                    initCanvas(); runSync();
+                } else window.showAlert("정보가 틀립니다.");
+            } catch (e) { window.showAlert("로그인 오류"); }
+        };
+
+        function initCanvas() {
+            Chart.defaults.color = '#8b95a1'; Chart.defaults.font.family = "'Pretendard', sans-serif";
+            cGlobal = new Chart(document.getElementById('canvas-global').getContext('2d'), {
+                type: 'line', data: { labels: [], datasets: [] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels:{color:'#fff', usePointStyle:true, boxWidth:8} }, tooltip: { displayColors: false } },
+                scales: { x: { type: 'time', time: { unit: 'minute', displayFormats: { minute: 'HH:mm' } }, display: true, ticks: { maxTicksLimit: 10 } }, y: { type: 'logarithmic', position: 'right', grid: { color: '#2c2c2e' }, ticks:{callback: v => Number(v).toLocaleString()} } }, animation: { duration: 0 }, interaction: { intersect: false, mode: 'index' } }
+            });
+            cDetail = new Chart(document.getElementById('canvas-detail').getContext('2d'), {
+                type: 'candlestick', data: { datasets: [{ data: [] }] },
+                options: { 
+                    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { displayColors: false } },
+                    scales: { x: { type: 'time', time: { unit: 'minute', displayFormats: { minute: 'HH:mm' } }, display: true }, y: { position: 'right', grid: { color: '#2c2c2e' } } }, 
+                    animation: { duration: 0 }
+                }
+            });
+        }
+
+        function runSync() {
+            onSnapshot(doc(usersCol, window.G.uid), (snap) => {
+                if(snap.exists()) {
+                    window.G.user = snap.data();
+                    window.drawSidebar(); window.renderLeaderboard();
+                    
+                    const pBox = document.getElementById('profile-preview-box');
+                    const uiPf = document.getElementById('ui-my-profile-img');
+                    if(window.G.user.profileImg) {
+                        pBox.innerHTML = `<img src="${window.G.user.profileImg}" style="width:100%;height:100%;object-fit:cover;">`;
+                        uiPf.innerHTML = `<img src="${window.G.user.profileImg}" style="width:100%;height:100%;object-fit:cover;">`;
+                    } else {
+                        const init = `<div style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;font-size:12px;color:#fff;">${window.G.user.nick.substring(0,1)}</div>`;
+                        pBox.innerHTML = init; uiPf.innerHTML = init;
+                    }
+                    
+                    document.getElementById('ui-nick').innerText = window.G.user.nick;
+                    if(window.G.targetItem && document.getElementById('stock-modal-overlay').style.display === 'flex') { window.calcSummary(); window.drawMyAssetBox(); window.renderPendingOrders(); }
+                }
+            });
+
+            onSnapshot(usersCol, (snap) => {
+                let list = []; snap.forEach(d => list.push({id: d.id, ...d.data()}));
+                window.G.usersList = list; window.renderLeaderboard();
+                
+                let fHtml = "", selHtml = "<option value=''>유저 선택</option>", roomUserHtml = "";
+                list.forEach((u) => {
+                    selHtml += `<option value="${u.id}">${u.nick} (${u.id})</option>`;
+                    if(u.id !== window.G.uid) {
+                        const pfHtml = u.profileImg ? `<img src="${u.profileImg}">` : `<div style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;">${u.nick.substring(0,1)}</div>`;
+                        fHtml += `<div class="chat-list-item" data-target="${u.id}" data-nick="${u.nick}">
+                            <div class="chat-profile">${pfHtml}</div>
+                            <div class="chat-info"><div class="chat-name">${u.nick}</div><div class="chat-preview">1:1 비밀 채팅</div></div>
+                            <button class="btn-remit-small">송금</button>
+                        </div>`;
+                        roomUserHtml += `<option value="${u.id}">${u.nick}</option>`;
+                    }
+                });
+                document.getElementById('chat-screen-friends').innerHTML = fHtml;
+                if(document.getElementById('admin-target-user')) document.getElementById('admin-target-user').innerHTML = selHtml;
+                if(document.getElementById('sel-room-users')) document.getElementById('sel-room-users').innerHTML = roomUserHtml;
+                window.updateChatRoomsList();
+            });
+
+            const mRef = doc(marketCol, "main");
+
+            onSnapshot(mRef, (snap) => {
+                if(snap.exists()) {
+                    window.G.market = snap.data();
+                    
+                    if(window.G.user?.isHost) {
+                        const btn = document.getElementById('btn-engine');
+                        if(btn) { btn.innerText = window.G.market.isRunning ? "엔진 끄기" : "엔진 켜기"; btn.className = window.G.market.isRunning ? "bg-gray" : "bg-red"; }
+                        
+                        let selHtml = "<option value=''>조작할 종목 선택 (필수)</option><option value='ALL_STOCKS'>[시장 전체 주식 적용]</option>";
+                        window.G.market.items.forEach(i => { if(i.type==='주식') selHtml += `<option value="${i.name}">${i.name}</option>`; });
+                        if(document.getElementById('admin-news-target')) document.getElementById('admin-news-target').innerHTML = selHtml;
+                        if(document.getElementById('admin-manipulate-target')) document.getElementById('admin-manipulate-target').innerHTML = selHtml;
+
+                        let astHtml = "<option value='cash'>현금 (Cash)</option>";
+                        window.G.market.items.forEach(i => { astHtml += `<option value="${i.name}">${i.name} (수량)</option>`; });
+                        if(document.getElementById('admin-target-asset')) document.getElementById('admin-target-asset').innerHTML = astHtml;
+                    }
+
+                    // 💡 분산형 엔진 틱 제어
+                    if(window.G.market.isRunning) {
+                        if(!window.G.engineTimer) {
+                            window.G.engineTimer = setInterval(() => {
+                                if(Date.now() - (window.G.market.lastTick || 0) >= 5000) { window.runEngine(); }
+                            }, 1000); 
+                        }
+                    } else {
+                        if(window.G.engineTimer) { clearInterval(window.G.engineTimer); window.G.engineTimer = null; }
+                    }
+
+                    const statusEl = document.getElementById('ui-engine-status');
+                    if(statusEl) statusEl.innerText = window.G.market.isRunning ? "(장 열림)" : "(장 마감)";
+                    
+                    window.renderNewsWidget();
+
+                    if(window.G.market.majorEvent) {
+                        const ev = window.G.market.majorEvent; 
+                        let localLastSeen = null;
+                        try { localLastSeen = localStorage.getItem('lastSeenEvent'); } catch(e) {}
+                        const dbLastSeen = window.G.user ? window.G.user.lastSeenEvent : null;
+
+                        if(localLastSeen !== ev.id.toString() && dbLastSeen !== ev.id && window.G.localLastSeen !== ev.id) {
+                            document.getElementById('hoi-event-title').innerText = ev.title;
+                            document.getElementById('hoi-event-time').innerText = "발행일: " + new Date(ev.id).toLocaleString();
+                            document.getElementById('hoi-event-content').innerText = ev.content;
+                            const imgElem = document.getElementById('hoi-event-img');
+                            if(ev.imgUrl) { imgElem.src = ev.imgUrl; imgElem.style.display = 'block'; } else { imgElem.style.display = 'none'; }
+                            
+                            document.getElementById('hoi-event-popup').style.display = 'flex'; 
+                            window.G.localLastSeen = ev.id;
+                            try { localStorage.setItem('lastSeenEvent', ev.id.toString()); } catch(e) {}
+                        }
+                    }
+                    
+                    window.drawMarket(); window.drawSidebar(); window.renderLeaderboard(); window.checkPendingOrders(); 
+                    if(window.G.targetItem && document.getElementById('stock-modal-overlay').style.display === 'flex') { window.syncDetailChart(); window.calcSummary(); window.drawMyAssetBox(); }
+                }
+            });
+
+            onSnapshot(chatCol, (snap) => {
+                let msgs = []; snap.forEach(d => msgs.push({ id: d.id, ...d.data() }));
+                window.G.chatMessages = msgs.sort((a,b) => a.timestamp - b.timestamp);
+                
+                // 신규 메시지 알림 로직
+                if (window.G.msgCount === 0 && msgs.length > 0) {
+                    window.G.msgCount = msgs.length;
+                } else if (msgs.length > window.G.msgCount) {
+                    if (!window.G.isChatOpen) {
+                        const badge = document.getElementById('chat-notify-badge');
+                        if (badge) badge.style.display = 'flex';
+                    }
+                    window.G.msgCount = msgs.length;
+                }
+
+                window.updateChatRoomsList(); if(window.G.currentChatRoom) window.renderChatMessages();
+            });
+
+            onSnapshot(roomsCol, (snap) => {
+                let rList = []; snap.forEach(d => rList.push({id: d.id, ...d.data()}));
+                window.G.chatRooms = rList; window.updateChatRoomsList();
+            });
+        }
+
+        window.renderLeaderboard = () => {
+            if(!window.G.usersList || !window.G.market) return;
+            let list = window.G.usersList.map(u => {
+                let t = u.cash || 0;
+                if(u.assets) Object.entries(u.assets).forEach(([n, a]) => { const mk = window.G.market.items.find(i=>i.name===n); if(mk) t += (a.amt * mk.price); });
+                return { ...u, total: t };
+            }).sort((a,b)=>b.total - a.total);
+            let html = "";
+            list.forEach((u, i) => {
+                const isMe = u.id === window.G.uid;
+                const pfHtml = u.profileImg ? `<img src="${u.profileImg}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:8px;object-fit:cover;">` : `<div style="width:24px;height:24px;border-radius:50%;background:#555;display:inline-flex;justify-content:center;align-items:center;margin-right:8px;font-size:12px;color:#fff;">${u.nick.substring(0,1)}</div>`;
+                html += `<div style="display:flex; justify-content:space-between; padding:18px; border-bottom:1px solid #2c2c2e; ${isMe?'background:#2c2c2e; border-radius:8px;':''}">
+                    <span style="color:#fff; font-size:16px; font-weight:600; display:flex; align-items:center;">
+                        ${u.isHost?'<span class="c-red" style="font-size:11px;border:1px solid #f04452;padding:2px 4px;border-radius:4px;margin-right:8px;">GM</span>':''}
+                        <span style="margin-right:10px;">${i+1}.</span> ${pfHtml} ${u.nick}
+                    </span>
+                    <span style="color:#fff; font-weight:700; font-size:16px;">${fMoney(u.total)}</span></div>`;
+            });
+            document.getElementById('ui-rank-list').innerHTML = html;
+        };
+
+        window.checkPendingOrders = () => {
+            if(!window.G.user || !window.G.user.pendingOrders || window.G.user.pendingOrders.length === 0) return;
+            let updated = false; let newOrders = []; let uData = { ...window.G.user };
+            
+            window.G.user.pendingOrders.forEach(po => {
+                const mk = window.G.market.items.find(i => i.name === po.itemName);
+                if(!mk) { newOrders.push(po); return; }
+                
+                if(po.type === 'BUY' && mk.price <= po.targetPrice) {
+                    let ast = uData.assets[po.itemName] || {amt:0, inv:0, avg:0};
+                    ast.amt += po.qty; ast.inv += po.reservedCash; ast.avg = ast.inv / ast.amt;
+                    uData.assets[po.itemName] = ast; updated = true;
+                    window.showAlert(`[지정가 매수 체결] ${po.itemName} ${po.qty}주 (${fMoney(mk.price)})`);
+                } else if(po.type === 'SELL' && mk.price >= po.targetPrice) {
+                    uData.cash += (mk.price * po.qty); updated = true;
+                    window.showAlert(`[지정가 매도 체결] ${po.itemName} ${po.qty}주 (${fMoney(mk.price)})`);
+                } else { newOrders.push(po); }
+            });
+            if(updated) updateDoc(doc(usersCol, window.G.uid), { assets: uData.assets, cash: uData.cash, pendingOrders: newOrders });
+        };
+
+        window.renderNewsWidget = () => {
+            const hist = window.G.market.newsHistory || []; let html = "";
+            [...hist].reverse().slice(0,5).forEach(n => {
+                html += `<div class="sb-news-item" data-id="${n.id}"><div class="sb-news-time">${new Date(n.time).toLocaleTimeString()}</div><div class="sb-news-title">${n.title}</div></div>`;
+            });
+            document.getElementById('news-list-body').innerHTML = html || `<div style='color:#8b95a1; text-align:center; font-size:13px; margin-top:20px;'>최근 뉴스가 없습니다.</div>`;
+        };
+
+        window.setSidebarMode = (mode) => { window.G.sbMode = mode; document.getElementById('btn-mode-price').className = mode === 'price' ? 'active' : ''; document.getElementById('btn-mode-eval').className = mode === 'eval' ? 'active' : ''; window.drawSidebar(); };
+
+        window.drawSidebar = () => {
+            if(!window.G.user || !window.G.market) return;
+            const u = window.G.user; 
+            let cash = u.cash;
+            let stockPrincipal = 0;
+            let stockCurrentVal = 0;
+            let html = ""; 
+            const mode = window.G.sbMode;
+            
+            const sortedAssets = Object.entries(u.assets).sort((a,b) => a[0].localeCompare(b[0]));
+
+            sortedAssets.forEach(([n, a]) => {
+                const mk = window.G.market.items.find(i=>i.name===n);
+                if(mk && a.amt > 0) {
+                    const cVal = a.amt * mk.price; 
+                    stockCurrentVal += cVal; 
+                    stockPrincipal += (a.inv || (a.amt * (a.avg || mk.price)));
+                    const avg = a.avg || mk.price; 
+                    let rightHtml = "";
+                    if(mode === 'price') {
+                        let prevP = mk.history && mk.history.length > 0 ? mk.history[mk.history.length-1].c : (mk.candle ? mk.candle.o : mk.price);
+                        let dRate = ((mk.price - prevP) / prevP) * 100; const cCls = dRate > 0 ? 'c-red' : (dRate < 0 ? 'c-blue' : 'c-gray');
+                        rightHtml = `<div style="color:#fff; font-weight:700; font-size:15px; margin-bottom:4px;">${fMoney(mk.price)}</div><div class="${cCls}" style="font-size:13px; font-weight:600;">${fPct(dRate)}</div>`;
+                    } else {
+                        const rRate = ((mk.price - avg) / avg) * 100; const rVal = cVal - (a.amt * avg); const cCls = rRate > 0 ? 'c-red' : (rRate < 0 ? 'c-blue' : 'c-gray');
+                        rightHtml = `<div style="color:#fff; font-weight:700; font-size:15px; margin-bottom:4px;">${fMoney(cVal)}</div><div class="${cCls}" style="font-size:13px; font-weight:600;">${rVal>0?'+':''}${Math.floor(rVal).toLocaleString()}원 (${fPct(rRate)})</div>`;
+                    }
+                    html += `<div class="sb-item" data-name="${n}"><div style="display:flex; align-items:center;"><div class="sb-icon">${n.substring(0,1)}</div><div class="sb-info-l"><span style="color:#fff; font-weight:600; font-size:15px;">${n}</span><span style="color:#8b95a1; font-size:13px;">${a.amt}주</span></div></div><div class="sb-info-r">${rightHtml}</div></div>`;
+                }
+            });
+            
+            document.getElementById('ui-cash').innerText = fMoney(cash);
+            document.getElementById('ui-stock-total').innerText = fMoney(stockCurrentVal);
+            
+            if(stockPrincipal > 0) {
+                const sRate = ((stockCurrentVal - stockPrincipal) / stockPrincipal) * 100; 
+                const sDiff = stockCurrentVal - stockPrincipal;
+                const sCls = sRate > 0 ? 'c-red' : (sRate < 0 ? 'c-blue' : 'c-gray');
+                document.getElementById('ui-stock-return').innerHTML = `<span class="${sCls}">${sDiff>0?'+':''}${fMoney(sDiff)} (${fPct(sRate)})</span>`;
+            } else {
+                document.getElementById('ui-stock-return').innerHTML = `<span class="c-gray">0원 (0.00%)</span>`;
+            }
+            
+            document.getElementById('ui-stock-list').innerHTML = html || "<div style='color:#8b95a1;text-align:center;padding:20px;'>자산 없음</div>";
+        };
+
+        window.drawMarket = () => {
+            let sHtml = "", eHtml = ""; const stocks = [];
+            window.G.market.items.forEach((item) => {
+                let prevP = item.history && item.history.length > 0 ? item.history[item.history.length-1].c : (item.candle ? item.candle.o : item.price);
+                let cRate = ((item.price - prevP)/prevP)*100; let cCls = cRate > 0 ? 'c-red' : (cRate < 0 ? 'c-blue' : 'c-gray'); let cStr = (cRate > 0 ? "+" : "") + cRate.toFixed(2) + "%";
+                if(item.type === '부동산') {
+                    eHtml += `<div class="estate-card" data-name="${item.name}"><div style="display:flex; justify-content:space-between; margin-bottom:15px;"><h3 style="color:#fff; margin:0;">${item.name}</h3><span class="${cCls}" style="font-weight:bold;">${cStr}</span></div><div style="font-size:24px; font-weight:700; color:#fff;">${fMoney(item.price)}</div><div style="margin-top:15px; background:#2c2c2e; padding:12px; border-radius:8px; text-align:center; color:#fff; font-weight:600;">상세 및 매매하기</div></div>`;
+                } else {
+                    stocks.push(item);
+                    sHtml += `<tr class="market-table tr stock-list-row" data-name="${item.name}"><td><div style="display:flex; align-items:center; gap:12px;"><div class="market-icon">${item.name.substring(0,1)}</div><div>${item.name}</div></div></td><td>${fMoney(item.price)}</td><td class="${cCls}">${cStr}</td></tr>`;
+                }
+            });
+            document.getElementById('ui-market-table').innerHTML = sHtml;
+            document.getElementById('ui-estate-grid').innerHTML = eHtml || "<span style='color:#8b95a1;'>매물 없음</span>";
+
+            if(stocks.length > 0 && cGlobal) {
+                let hiddenStates = {};
+                cGlobal.data.datasets.forEach((ds, i) => {
+                    const meta = cGlobal.getDatasetMeta(i);
+                    hiddenStates[ds.label] = meta.hidden;
+                });
+
+                cGlobal.data.datasets = stocks.map((s, i) => {
+                    let dArr = s.history ? [...s.history] : []; if(s.candle) dArr.push(s.candle);
+                    const newData = dArr.map(d => ({x: d.t, y: d.c}));
+                    
+                    let ds = cGlobal.data.datasets.find(d => d.label === s.name);
+                    if (ds) {
+                        ds.data = newData;
+                    } else {
+                        cGlobal.data.datasets.push({
+                            label: s.name, 
+                            data: newData, 
+                            borderColor: colors[i % colors.length], 
+                            borderWidth: 2, pointRadius: 0, tension: 0.1, fill: false
+                        });
+                    }
+                    // 숨김 상태 적용
+                    let finalDs = cGlobal.data.datasets.find(d => d.label === s.name);
+                    if (finalDs) finalDs.hidden = hiddenStates[s.name] === true;
+                    
+                    return finalDs;
+                }).filter(Boolean); // 유효한 데이터셋만 남김
+                
+                const currentStockNames = stocks.map(s => s.name);
+                cGlobal.data.datasets = cGlobal.data.datasets.filter(ds => currentStockNames.includes(ds.label));
+
+                cGlobal.update('none'); 
+            }
+        };
+
+        // ====== 상세뷰 및 주문 ======
+        window.openDetail = (name) => {
+            window.G.targetItem = name; const it = window.G.market.items.find(i=>i.name===name); if(!it) return;
+            document.getElementById('dt-name').innerText = it.name; document.getElementById('dt-icon').innerText = it.name.substring(0,1); 
+            const descEl = document.getElementById('dt-desc'); if(descEl) descEl.innerText = it.desc || "종목 정보 없음";
+            
+            window.syncDetailChart(); window.drawMyAssetBox(); window.setOrderType('BUY'); window.setPriceType('LIMIT'); 
+            document.getElementById('stock-modal-overlay').style.display = 'flex';
+        };
+
+        window.closeDetail = () => { document.getElementById('stock-modal-overlay').style.display = 'none'; window.G.targetItem = null; };
+
+        window.syncDetailChart = () => {
+            const it = window.G.market.items.find(i=>i.name===window.G.targetItem); if(!it) return;
+            let prevP = it.history && it.history.length > 0 ? it.history[it.history.length-1].c : (it.candle ? it.candle.o : it.price);
+            let cVal = it.price - prevP; let cRate = (cVal / prevP) * 100; let cCls = cRate > 0 ? 'c-red' : (cRate < 0 ? 'c-blue' : 'c-gray');
+            document.getElementById('dt-target-price').value = it.price; document.getElementById('dt-market-price-show').value = fMoney(it.price);
+            document.getElementById('dt-price-val').innerText = fMoney(it.price); document.getElementById('dt-price-wrap').className = `dt-price ${cCls}`;
+            document.getElementById('dt-change').innerText = `${cVal > 0 ? '▲' : (cVal < 0 ? '▼' : '')} ${Math.abs(cVal).toLocaleString()}원 (${fPct(cRate)})`;
+
+            let dArr = it.history ? [...it.history] : []; if(it.candle) dArr.push(it.candle);
+            cDetail.data.datasets = [{ 
+                label: it.name, 
+                data: dArr.map(d => ({x: d.t, o: d.o, h: d.h, l: d.l, c: d.c})),
+                backgroundColor: function(ctx) { const item = ctx.raw; if (!item) return '#8b95a1'; return item.c >= item.o ? '#f04452' : '#3182f6'; }
+            }];
+            cDetail.update('none');
+        };
+
+        window.drawMyAssetBox = () => {
+            const a = window.G.user?.assets?.[window.G.targetItem];
+            if(a && a.amt > 0) {
+                document.getElementById('dt-my-empty-box').style.display = 'none'; document.getElementById('dt-my-asset-box').style.display = 'block';
+                const it = window.G.market.items.find(i=>i.name===window.G.targetItem);
+                const cTot = a.amt * it.price; const avg = a.avg || it.price; const rVal = cTot - (a.amt * avg); const rRate = (rVal / (a.amt * avg)) * 100; const cCls = rRate > 0 ? 'c-red' : (rRate < 0 ? 'c-blue' : 'c-gray');
+                document.getElementById('dt-my-amount').innerText = `${a.amt}주`; document.getElementById('dt-my-avg').innerText = fMoney(avg); document.getElementById('dt-my-invested').innerText = fMoney(a.amt * avg);
+                document.getElementById('dt-my-total').innerText = fMoney(cTot); document.getElementById('dt-my-return').className = cCls; document.getElementById('dt-my-return').innerText = `${rVal > 0 ? '+' : ''}${fMoney(rVal)} (${fPct(rRate)})`;
+            } else { document.getElementById('dt-my-empty-box').style.display = 'block'; document.getElementById('dt-my-asset-box').style.display = 'none'; }
+        };
+
+        window.setOrderType = (type) => {
+            window.G.orderType = type;
+            document.getElementById('tab-buy').className = `order-tab buy ${type==='BUY'?'active':''}`; document.getElementById('tab-sell').className = `order-tab sell ${type==='SELL'?'active':''}`; document.getElementById('tab-pend').className = `order-tab pend ${type==='PEND'?'active':''}`;
+            if(type === 'PEND') {
+                document.getElementById('order-form-area').style.display = 'none'; document.getElementById('pending-orders-list').style.display = 'flex'; window.renderPendingOrders();
+            } else {
+                document.getElementById('order-form-area').style.display = 'block'; document.getElementById('pending-orders-list').style.display = 'none';
+                const btn = document.getElementById('btn-execute'); btn.innerText = type==='BUY' ? (window.G.priceType==='LIMIT'?'예약 매수하기':'시장가 매수하기') : (window.G.priceType==='LIMIT'?'예약 매도하기':'시장가 매도하기');
+                btn.className = `bg-${type==='BUY'?'red':'blue'}`; document.getElementById('dt-avail-label').innerText = type==='BUY'?'가용 현금':'판매가능 수량'; window.calcSummary();
+            }
+        };
+
+        window.setPriceType = (ptype) => {
+            window.G.priceType = ptype;
+            document.getElementById('btn-type-market').className = ptype === 'MARKET' ? 'active' : ''; document.getElementById('btn-type-limit').className = ptype === 'LIMIT' ? 'active' : '';
+            if(ptype === 'LIMIT') {
+                document.getElementById('market-price-row').style.display = 'none'; document.getElementById('limit-price-row').style.display = 'flex';
+                const it = window.G.market.items.find(i=>i.name===window.G.targetItem); document.getElementById('dt-target-price').value = it.price;
+            } else { document.getElementById('market-price-row').style.display = 'flex'; document.getElementById('limit-price-row').style.display = 'none'; }
+            window.setOrderType(window.G.orderType); 
+        };
+
+        window.adjustQty = (d) => { let q = parseInt(document.getElementById('inp-qty').value) || 0; q += d; if(q < 1) q = 1; document.getElementById('inp-qty').value = q; window.calcSummary(); };
+        window.adjustLimitPrice = (d) => { let p = parseInt(document.getElementById('dt-target-price').value) || 0; p += d; if(p < 10) p = 10; document.getElementById('dt-target-price').value = p; window.calcSummary(); };
+
+        window.calcSummary = () => {
+            if(!window.G.targetItem) return; const it = window.G.market.items.find(i=>i.name===window.G.targetItem);
+            let q = parseInt(document.getElementById('inp-qty').value); if(isNaN(q) || q < 1) q = 1;
+            let price = window.G.priceType === 'MARKET' ? it.price : (parseInt(document.getElementById('dt-target-price').value) || 0);
+            document.getElementById('dt-total-val').innerText = fMoney(price * q);
+            if(window.G.orderType === 'BUY') document.getElementById('dt-avail-val').innerText = fMoney(window.G.user.cash);
+            else { const a = window.G.user.assets[window.G.targetItem]; document.getElementById('dt-avail-val').innerText = `${a ? a.amt : 0}주`; }
+        };
+
+        window.calcMaxQty = (pct) => {
+            const it = window.G.market.items.find(i=>i.name===window.G.targetItem);
+            let price = window.G.priceType === 'MARKET' ? it.price : (parseInt(document.getElementById('dt-target-price').value) || 0);
+            if(price <= 0) return;
+            let max = 0;
+            if(window.G.orderType === 'BUY') max = Math.floor(window.G.user.cash / price);
+            else max = window.G.user.assets[window.G.targetItem]?.amt || 0;
+            let t = Math.floor(max * pct); if(t < 1 && max > 0 && pct === 1) t = max; if(t < 1) t = 1; if(max === 0) t = 0;
+            document.getElementById('inp-qty').value = t; window.calcSummary();
+        };
+
+        window.executeOrder = async () => {
+            const itName = window.G.targetItem; if(!itName) return;
+            const it = window.G.market.items.find(i=>i.name===itName); const q = parseInt(document.getElementById('inp-qty').value);
+            if(isNaN(q) || q <= 0) return window.showAlert("수량을 입력하세요.");
+
+            const uRef = doc(usersCol, window.G.uid); let asts = window.G.user.assets || {}; let old = asts[itName] || { amt: 0, inv: 0, avg: 0 }; let pOrders = window.G.user.pendingOrders || [];
+
+            if(window.G.priceType === 'LIMIT') {
+                let targetP = parseInt(document.getElementById('dt-target-price').value); if(isNaN(targetP) || targetP <= 0) return window.showAlert("목표 가격을 입력하세요.");
+                if(window.G.orderType === 'BUY') {
+                    const reqCash = targetP * q; if(window.G.user.cash < reqCash) return window.showAlert("예약할 현금이 부족합니다.");
+                    pOrders.push({ id: Date.now(), itemName: itName, type: 'BUY', qty: q, targetPrice: targetP, reservedCash: reqCash });
+                    await updateDoc(uRef, { cash: window.G.user.cash - reqCash, pendingOrders: pOrders }); window.showAlert(`[예약] ${itName} ${q}주 매수 예약됨`);
+                } else {
+                    if(old.amt < q) return window.showAlert("예약할 수량이 부족합니다.");
+                    const nAmt = old.amt - q; const ratio = old.amt > 0 ? (nAmt / old.amt) : 0; 
+                    const deductedInv = old.amt > 0 ? old.inv * (q / old.amt) : 0; 
+                    const savedAvg = old.avg;
+                    
+                    if(nAmt === 0) delete asts[itName]; else asts[itName] = { amt: nAmt, inv: old.inv * ratio, avg: old.avg };
+                    pOrders.push({ id: Date.now(), itemName: itName, type: 'SELL', qty: q, targetPrice: targetP, reservedInv: deductedInv, savedAvg: savedAvg });
+                    await updateDoc(uRef, { assets: asts, pendingOrders: pOrders }); window.showAlert(`[예약] ${itName} ${q}주 매도 예약됨`);
+                }
+            } else {
+                const cost = it.price * q;
+                if(window.G.orderType === 'BUY') {
+                    if(window.G.user.cash < cost) return window.showAlert("현금이 부족합니다.");
+                    asts[itName] = { amt: old.amt + q, inv: old.inv + cost, avg: (old.inv + cost) / (old.amt + q) };
+                    await updateDoc(uRef, { cash: window.G.user.cash - cost, assets: asts }); window.showAlert(`[체결] ${itName} ${q}주 구매 완료!`);
+                } else {
+                    if(old.amt < q) return window.showAlert("판매 수량이 부족합니다.");
+                    const nAmt = old.amt - q; const ratio = old.amt > 0 ? (nAmt / old.amt) : 0; if(nAmt === 0) delete asts[itName]; else asts[itName] = { amt: nAmt, inv: old.inv * ratio, avg: old.avg };
+                    await updateDoc(uRef, { cash: window.G.user.cash + cost, assets: asts }); window.showAlert(`[체결] ${itName} ${q}주 판매 완료!`);
+                }
+            }
+            window.calcSummary();
+        };
+
+        window.cancelPendingOrder = async (orderId) => {
+            const pOrders = window.G.user.pendingOrders || []; const orderIdx = pOrders.findIndex(o => o.id === orderId); if(orderIdx === -1) return;
+            const order = pOrders[orderIdx]; let uData = { ...window.G.user };
+            
+            if(order.type === 'BUY') { 
+                uData.cash += order.reservedCash; 
+            } else {
+                let ast = uData.assets[order.itemName] || {amt:0, inv:0, avg:0}; 
+                ast.amt += order.qty; 
+                ast.inv += (order.reservedInv || (order.savedAvg * order.qty) || 0); 
+                if(ast.amt > 0) ast.avg = ast.inv / ast.amt; 
+                uData.assets[order.itemName] = ast;
+            }
+            pOrders.splice(orderIdx, 1);
+            await updateDoc(doc(usersCol, window.G.uid), { cash: uData.cash, assets: uData.assets, pendingOrders: pOrders }); window.showAlert("예약 주문이 취소되었습니다.");
+        };
+
+        window.renderPendingOrders = () => {
+            const list = window.G.user.pendingOrders || []; const myOrders = list.filter(o => o.itemName === window.G.targetItem); let html = "";
+            myOrders.forEach(o => { html += `<div class="pending-item"><div><div style="color:${o.type==='BUY'?'#f04452':'#3182f6'}; font-weight:bold; margin-bottom:5px;">${o.type==='BUY'?'매수 대기':'매도 대기'}</div><div style="color:#fff; font-size:16px;">${o.qty}주 @ ${fMoney(o.targetPrice)}</div></div><button style="background:#2c2c2e; padding:8px 12px; color:#8b95a1;" onclick="window.cancelPendingOrder(${o.id})">취소</button></div>`; });
+            document.getElementById('pending-orders-list').innerHTML = html || "<div style='text-align:center; color:#8b95a1; padding:20px;'>대기 중인 주문이 없습니다.</div>";
+        };
+
+        // ====== 송금 & 채팅방 생성 로직 ======
+        window.openRemitModal = (targetId, targetNick) => {
+            window.G.remitTarget = targetId; document.getElementById('remit-target-nick').innerText = targetNick; document.getElementById('inp-remit-amount').value = "";
+            document.getElementById('create-room-box').style.display = 'none'; document.getElementById('remit-box').style.display = 'block'; document.getElementById('custom-modal-overlay').style.display = 'flex';
+        };
+
+        window.execRemit = async () => {
+            if(!window.G.remitTarget) return; const amt = parseInt(document.getElementById('inp-remit-amount').value);
+            if(isNaN(amt) || amt <= 0) return window.showAlert("올바른 금액을 입력하세요."); if(window.G.user.cash < amt) return window.showAlert("현금이 부족합니다.");
+            const myRef = doc(usersCol, window.G.uid); const targetRef = doc(usersCol, window.G.remitTarget);
+            try {
+                const targetSnap = await getDoc(targetRef);
+                if(targetSnap.exists()) {
+                    await updateDoc(myRef, { cash: window.G.user.cash - amt }); await updateDoc(targetRef, { cash: targetSnap.data().cash + amt });
+                    const roomId = window.getRoomId(window.G.uid, window.G.remitTarget);
+                    await addDoc(chatCol, { roomId: roomId, senderId: 'SYSTEM', senderNick: 'Bank', isNews: false, text: `💸 [송금] ${window.G.user.nick}님이 ${fMoney(amt)}을 송금했습니다.`, timestamp: Date.now() });
+                    window.showAlert("송금 완료!"); document.getElementById('custom-modal-overlay').style.display = 'none';
+                }
+            } catch(e) { window.showAlert("송금 오류"); }
+        };
+
+        window.openCreateRoomModal = () => { document.getElementById('inp-room-title').value = ""; document.getElementById('remit-box').style.display = 'none'; document.getElementById('create-room-box').style.display = 'block'; document.getElementById('custom-modal-overlay').style.display = 'flex'; };
+
+        window.execCreateRoom = async () => {
+            const title = document.getElementById('inp-room-title').value.trim(); const sel = document.getElementById('sel-room-users'); let participants = Array.from(sel.selectedOptions).map(opt => opt.value);
+            if(!title) return window.showAlert("이름을 입력하세요."); if(participants.length === 0) return window.showAlert("유저를 선택하세요.");
+            participants.push(window.G.uid); 
+            try { await addDoc(roomsCol, { title: title, participants: participants, createdBy: window.G.uid, timestamp: Date.now() }); window.showAlert("생성 완료."); document.getElementById('custom-modal-overlay').style.display = 'none'; } catch(e) { window.showAlert("생성 오류"); }
+        };
+
+        // ====== 채팅 & 프로필 ======
+        window.switchChatTab = (tab) => {
+            ['friends', 'rooms', 'host', 'profile'].forEach(t => { document.querySelectorAll('.chat-tab')[['friends','rooms','host','profile'].indexOf(t)]?.classList.remove('active'); document.getElementById(`chat-screen-${t}`)?.classList.remove('active'); });
+            document.querySelectorAll('.chat-tab')[['friends','rooms','host','profile'].indexOf(tab)].classList.add('active'); document.getElementById(`chat-screen-${tab}`).classList.add('active'); document.getElementById('chat-room-screen').style.display = 'none'; document.getElementById('chat-article-screen').style.display = 'none';
+        };
+
+        window.getRoomId = (u1, u2) => [u1, u2].sort().join('_');
+        window.openChatRoom = (roomId, title) => { window.G.currentChatRoom = roomId; document.querySelectorAll('.chat-screen').forEach(s => s.classList.remove('active')); document.getElementById('chat-article-screen').style.display = 'none'; document.getElementById('chat-room-screen').style.display = 'flex'; document.getElementById('chat-room-title').innerText = title; window.renderChatMessages(); };
+        window.closeChatRoom = () => { window.G.currentChatRoom = null; document.getElementById('chat-room-screen').style.display = 'none'; document.querySelectorAll('.chat-tab').forEach(t => { if(t.classList.contains('active')) t.click(); }); };
+        
+        window.openArticleFromId = (newsId) => {
+            let hist = window.G.market.newsHistory || []; 
+            let news = hist.find(n => n.id == newsId); 
+            
+            if(!news) {
+                const cMsg = window.G.chatMessages.find(m => m.newsId == newsId);
+                if(cMsg) news = { title: cMsg.title, content: cMsg.content, imgUrl: cMsg.imgUrl };
+            }
+            if(!news) return window.showAlert("오래되어 삭제된 기사입니다.");
+
+            document.querySelectorAll('.chat-screen').forEach(s => s.classList.remove('active')); document.getElementById('chat-room-screen').style.display = 'none';
+            document.getElementById('chat-widget').classList.add('open'); document.getElementById('chat-floating-btn').style.display = 'none'; document.getElementById('chat-article-screen').style.display = 'flex';
+            let html = `<h2>${news.title}</h2>`; if(news.imgUrl) html += `<img src="${news.imgUrl}" alt="news_img">`; if(news.content) html += `<p>${news.content}</p>`; else html += `<p>자세한 기사 내용이 제공되지 않았습니다.</p>`;
+            document.getElementById('article-content-area').innerHTML = html;
+        };
+        window.closeArticle = () => { document.getElementById('chat-article-screen').style.display = 'none'; if(window.G.currentChatRoom) document.getElementById('chat-room-screen').style.display = 'flex'; else document.querySelectorAll('.chat-tab').forEach(t => { if(t.classList.contains('active')) t.click(); }); };
+
+        window.sendChatMessage = async () => { const input = document.getElementById('chat-msg-input'); const text = input.value.trim(); if(!text || !window.G.currentChatRoom) return; input.value = ''; await addDoc(chatCol, { roomId: window.G.currentChatRoom, senderId: window.G.uid, senderNick: window.G.user.nick, text: text, timestamp: Date.now() }); };
+
+        window.updateChatRoomsList = () => {
+            let myRooms = new Set(), hostRooms = new Set();
+            window.G.chatMessages.forEach(msg => { if(msg.roomId !== 'global') { hostRooms.add(msg.roomId); if(msg.roomId.includes(window.G.uid)) myRooms.add(msg.roomId); } });
+            let privateHtml = "", hostHtml = "";
+            myRooms.forEach(roomId => {
+                if(roomId.includes('_')) {
+                    const otherId = roomId.split('_').find(id => id !== window.G.uid); const otherUser = window.G.usersList.find(u => u.id === otherId); const title = otherUser ? `${otherUser.nick}님` : '알 수 없는 유저';
+                    const roomMsgs = window.G.chatMessages.filter(m => m.roomId === roomId && !m.isNews); const lastMsg = roomMsgs.length > 0 ? roomMsgs[roomMsgs.length-1].text : '';
+                    privateHtml += `<div class="chat-list-item" data-room="${roomId}" data-title="${title}"><div class="chat-profile" style="background:#457b9d;">${title.substring(0,1)}</div><div class="chat-info"><div class="chat-name">${title}</div><div class="chat-preview">${lastMsg}</div></div></div>`;
+                }
+            });
+            if(window.G.chatRooms) {
+                window.G.chatRooms.forEach(room => {
+                    if(room.participants.includes(window.G.uid) || window.G.user?.isHost) {
+                        const roomMsgs = window.G.chatMessages.filter(m => m.roomId === room.id && !m.isNews); const lastMsg = roomMsgs.length > 0 ? roomMsgs[roomMsgs.length-1].text : '';
+                        privateHtml += `<div class="chat-list-item" data-room="${room.id}" data-title="${room.title}"><div class="chat-profile" style="background:#a881e6;">G</div><div class="chat-info"><div class="chat-name">${room.title}</div><div class="chat-preview">${lastMsg}</div></div></div>`;
+                    }
+                });
+            }
+            document.getElementById('private-rooms-list').innerHTML = privateHtml;
+            if(window.G.user?.isHost) {
+                hostRooms.forEach(roomId => {
+                    if(roomId.includes('_')) {
+                        const ids = roomId.split('_'); const u1 = window.G.usersList.find(u => u.id === ids[0])?.nick || ids[0]; const u2 = window.G.usersList.find(u => u.id === ids[1])?.nick || ids[1]; const title = `[감청] ${u1} ↔ ${u2}`;
+                        const roomMsgs = window.G.chatMessages.filter(m => m.roomId === roomId && !m.isNews); const lastMsg = roomMsgs.length > 0 ? roomMsgs[roomMsgs.length-1].text : '';
+                        hostHtml += `<div class="chat-list-item" data-room="${roomId}" data-title="${title}"><div class="chat-profile" style="background:#e63946;">!</div><div class="chat-info"><div class="chat-name">${title}</div><div class="chat-preview">${lastMsg}</div></div></div>`;
+                    }
+                });
+                document.getElementById('host-rooms-list').innerHTML = hostHtml;
+            }
+        };
+
+        window.renderChatMessages = () => {
+            if(!window.G.currentChatRoom) return; const area = document.getElementById('chat-messages-area'); const msgs = window.G.chatMessages.filter(m => m.roomId === window.G.currentChatRoom); let html = "";
+            msgs.forEach(m => {
+                const isMe = m.senderId === window.G.uid; const wrapperClass = isMe ? 'me' : 'other';
+                
+                let senderPfHtml = "";
+                if (!isMe && m.senderId !== 'SYSTEM') {
+                    const senderU = window.G.usersList.find(u => u.id === m.senderId);
+                    const pfImg = senderU?.profileImg;
+                    const nickInit = (m.senderNick || "?").substring(0,1);
+                    senderPfHtml = pfImg ? `<img src="${pfImg}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">` : `<div style="width:28px;height:28px;border-radius:50%;background:#555;display:flex;justify-content:center;align-items:center;color:#fff;font-size:12px;">${nickInit}</div>`;
+                }
+
+                if (m.isNews) {
+                    html += `
+                    <div class="bubble-wrapper other" style="flex-direction:row; align-items:flex-start; gap:8px; max-width:90%;">
+                        <div style="width:28px;height:28px;border-radius:50%;background:#e63946;display:flex;justify-content:center;align-items:center;color:#fff;font-size:12px;flex-shrink:0;">N</div>
+                        <div style="display:flex; flex-direction:column;">
+                            <div class="bubble-sender" style="margin-left:0;">뉴스 봇</div>
+                            <div class="chat-news-card" data-id="${m.newsId}">
+                                ${m.imgUrl ? `<img src="${m.imgUrl}">` : `<div style="height:60px; background:#eee; display:flex; align-items:center; justify-content:center; color:#888;">[뉴스 이미지]</div>`}
+                                <div class="card-text">
+                                    <h4>${m.title}</h4>
+                                    <p>${m.content ? m.content.substring(0,30) + '...' : '자세히 보기'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                } else if (!isMe && m.senderId === 'SYSTEM') {
+                    html += `
+                    <div class="bubble-wrapper ${wrapperClass}" style="flex-direction:row; align-items:flex-end; gap:8px; max-width:90%;">
+                        <div style="width:28px;height:28px;border-radius:50%;background:#e63946;display:flex;justify-content:center;align-items:center;color:#fff;font-size:12px;flex-shrink:0;">S</div>
+                        <div style="display:flex; flex-direction:column;">
+                            <div class="bubble-sender" style="margin-left:0;">${m.senderNick}</div>
+                            <div class="chat-bubble">${m.text}</div>
+                        </div>
+                    </div>`;
+                } else if (!isMe) {
+                    html += `
+                    <div class="bubble-wrapper ${wrapperClass}" style="flex-direction:row; align-items:flex-start; gap:8px; max-width:90%;">
+                        <div style="flex-shrink:0; margin-top:14px;">${senderPfHtml}</div>
+                        <div style="display:flex; flex-direction:column;">
+                            <div class="bubble-sender" style="margin-left:0;">${m.senderNick}</div>
+                            <div class="chat-bubble">${m.text}</div>
+                        </div>
+                    </div>`;
+                } else {
+                    html += `<div class="bubble-wrapper ${wrapperClass}">
+                        <div class="chat-bubble">${m.text}</div>
+                    </div>`;
+                }
+            });
+            area.innerHTML = html || "<div style='text-align:center; color:#888; font-size:12px; margin-top:20px;'>대화 내용이 없습니다.</div>"; area.scrollTop = area.scrollHeight;
+        };
+
+        window.changeProfile = async () => { const nick = document.getElementById('inp-change-nick').value.trim(); const updates = {}; if(nick) updates.nick = nick; if(window.G.tempProfileImg) updates.profileImg = window.G.tempProfileImg; if(Object.keys(updates).length > 0) { await updateDoc(doc(usersCol, window.G.uid), updates); window.showAlert("프로필 변경 완료!"); } };
+        window.deleteAccount = async () => { if(!confirm("정말 탈퇴하시겠습니까?")) return; await deleteDoc(doc(usersCol, window.G.uid)); window.location.reload(); };
+
+        // ====== 관리자: 엔진 (트랜잭션으로 충돌 완전 차단) ======
+        window.toggleEngine = async () => { const b = !window.G.market.isRunning; await updateDoc(doc(marketCol, "main"), { isRunning: b }); };
+
+        window.runEngine = async () => {
+            const now = Date.now();
+            const mRef = doc(marketCol, "main");
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const snap = await transaction.get(mRef);
+                    if (!snap.exists()) return;
+                    const currentMarket = snap.data();
+                    
+                    const lastTick = currentMarket.lastTick || now;
+                    if (now - lastTick < 4000) return; // 중복 틱 방지
+
+                    // 🌟 접속 공백기(30분 이상) 발생 시 차트 초기화 (장 마감 후 재개 처리)
+                    const isLongGap = (now - lastTick) > 30 * 60 * 1000;
+
+                    let hist = currentMarket.newsHistory || []; 
+                    let autoNews = null;
+                    if(!currentMarket.lastAutoNewsTime || now - currentMarket.lastAutoNewsTime > 600000) { currentMarket.newsCount = 0; }
+                    let currentCount = currentMarket.newsCount || 0;
+                    
+                    if(currentCount < 5 && Math.random() < 0.05) { 
+                        const stocks = currentMarket.items.filter(i=>i.type==='주식');
+                        if(stocks.length > 0) {
+                            const rnd = [{ t: "기관 대량 매수세 유입", v: 5 }, { t: "신사업 추진 본격화", v: 8 }, { t: "어닝 서프라이즈!", v: 12 }, { t: "공매도 세력 타겟 하락", v: -5 }, { t: "경쟁사 신제품 발표에 타격", v: -8 }, { t: "CEO 배임 논란", v: -15 }];
+                            const tStock = stocks[Math.floor(Math.random() * stocks.length)]; const tNews = rnd[Math.floor(Math.random() * rnd.length)];
+                            autoNews = { target: tStock.name, title: `[${tStock.name}] ${tNews.t}`, impact: tNews.v };
+                            const nid = Date.now(); hist.push({ id: nid, title: autoNews.title, time: nid, content: "", imgUrl: "" }); currentCount++;
+                        }
+                    }
+
+                    let nItems = currentMarket.items.map(i => {
+                        if(i.type === '부동산') return i;
+                        let price = i.price; let target = i.targetPrice !== undefined ? i.targetPrice : price; let isTrending = i.trendActive === true;
+                        let c = i.candle || {t: now, o: price, h: price, l: price, c: price};
+                        let baseVol = price > 500000 ? 0.02 : (price < 50000 ? 0.008 : 0.01);
+                        let drift = price < 50000 ? 0.002 : 0;
+
+                        if(autoNews && autoNews.target === i.name) { target = Math.floor(price * (1 + autoNews.impact / 100)); isTrending = true; price = Math.floor(price * (1 + (autoNews.impact * 0.3)/100)); }
+
+                        if (isTrending) {
+                            let diff = target - price; 
+                            let step = diff * 0.15; 
+                            let noise = price * (Math.random() * baseVol * 2 - baseVol);
+                            price += step + noise; 
+                            
+                            if (Math.abs(price - target) / target < 0.005) { 
+                                isTrending = false;
+                                price = target;
+                            }
+                        } else {
+                            let isBurst = Math.random() < 0.01; let vol = isBurst ? 0.15 : baseVol; let change = price * (Math.random() * vol * 2 - vol + drift); price += change;
+                        }
+                        price = Math.max(100, Math.floor(price)); 
+                        
+                        c.c = price; c.h = Math.max(c.h, price); c.l = Math.min(c.l, price);
+                        let h = i.history || []; 
+                        
+                        if (isLongGap) {
+                            h = []; // 30분 이상 아무도 접속 안 했다면 차트 기록 초기화 (화면 찌그러짐 방지)
+                            c = {t: now, o: price, h: price, l: price, c: price};
+                        } else if(now - c.t >= 60000) { 
+                            h.push({...c}); 
+                            if(h.length > 60) h.shift(); 
+                            c = {t: now, o: price, h: price, l: price, c: price}; 
+                        }
+                        
+                        return { name: i.name, type: i.type, desc: i.desc || "", price: price, history: h, candle: c, targetPrice: target, trendActive: isTrending };
+                    });
+                    
+                    transaction.update(mRef, { items: nItems, newsHistory: hist, newsCount: currentCount, lastTick: now, lastAutoNewsTime: (currentMarket.lastAutoNewsTime || now) });
+                });
+            } catch(e) {}
+        };
+
+        window.adminModifyAsset = async () => {
+            const targetId = document.getElementById('admin-target-user').value; const assetType = document.getElementById('admin-target-asset').value; const amt = parseInt(document.getElementById('admin-target-amount').value);
+            if(!targetId || isNaN(amt)) return window.showAlert("유저와 수량을 확인하세요.");
+            const targetRef = doc(usersCol, targetId);
+            try {
+                const snap = await getDoc(targetRef);
+                if(snap.exists()) {
+                    let data = snap.data();
+                    if(assetType === 'cash') { await updateDoc(targetRef, { cash: data.cash + amt }); window.showAlert(`${data.nick}님 현금 조작 완료`); } 
+                    else { let asts = data.assets || {}; let old = asts[assetType] || {amt:0, inv:0, avg:0}; old.amt += amt; if(old.amt <= 0) delete asts[assetType]; else asts[assetType] = old; await updateDoc(targetRef, { assets: asts }); window.showAlert(`${data.nick}님 ${assetType} 조작 완료`); }
+                }
+            } catch(e) { window.showAlert("조작 실패"); }
+        };
+
+        window.triggerManualNews = async () => {
+            const title = document.getElementById('admin-news-title').value.trim(); const content = document.getElementById('admin-news-content').value.trim(); const imgUrl = window.G.tempNewsImg || "";
+            const targetStock = document.getElementById('admin-news-target').value; const impactStr = document.getElementById('admin-news-impact').value;
+            if(!title) return window.showAlert("뉴스 제목은 필수입니다.");
+
+            const mRef = doc(marketCol, "main");
+            try {
+                let newsId = Date.now();
+                await runTransaction(db, async (transaction) => {
+                    const snap = await transaction.get(mRef);
+                    if(!snap.exists()) throw "DB Error";
+                    const currentMarket = snap.data();
+                    
+                    const majorEventData = { id: newsId, title: title, content: content, imgUrl: imgUrl };
+                    let hist = currentMarket.newsHistory || []; hist.push({ id: newsId, title: "[대형 이벤트] " + title, content: content, imgUrl: imgUrl, time: newsId });
+
+                    let updatePayload = { majorEvent: majorEventData, newsHistory: hist };
+                    
+                    if(targetStock && impactStr) {
+                        const impact = parseFloat(impactStr);
+                        if(!isNaN(impact)) {
+                            let nItems = currentMarket.items.map(i => {
+                                let target = i.targetPrice !== undefined ? i.targetPrice : i.price; let isTrending = i.trendActive === true;
+                                if (targetStock === "ALL_STOCKS" && i.type === '주식') { target = Math.floor(i.price * (1 + impact/100)); isTrending = true; } 
+                                else if (i.name === targetStock) { target = Math.floor(i.price * (1 + impact/100)); isTrending = true; }
+                                return { ...i, targetPrice: target, trendActive: isTrending };
+                            });
+                            updatePayload.items = nItems;
+                        }
+                    }
+                    transaction.update(mRef, updatePayload);
+                });
+                await addDoc(chatCol, { roomId: 'global', senderId: 'SYSTEM', senderNick: '뉴스 봇', isNews: true, newsId: newsId, title: title, content: content, imgUrl: imgUrl || "", timestamp: Date.now() });
+
+                document.getElementById('admin-news-title').value = ""; document.getElementById('admin-news-content').value = ""; document.getElementById('admin-news-impact').value = "";
+                window.G.tempNewsImg = null; const preview = document.getElementById('admin-news-preview'); if(preview) preview.style.display = 'none'; window.showAlert("대형 뉴스 발행 완료!");
+            } catch (e) { window.showAlert("오류 발생"); }
+        };
+
+        window.triggerManipulateOnly = async () => {
+            const targetStock = document.getElementById('admin-manipulate-target').value; const impact = parseFloat(document.getElementById('admin-manipulate-impact').value);
+            if(!targetStock || isNaN(impact)) return window.showAlert("종목과 증감률을 입력하세요.");
+            
+            const mRef = doc(marketCol, "main");
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const snap = await transaction.get(mRef);
+                    if(!snap.exists()) throw "DB Error";
+                    const currentMarket = snap.data();
+                    let nItems = currentMarket.items.map(i => {
+                        let target = i.targetPrice !== undefined ? i.targetPrice : i.price; let isTrending = i.trendActive === true;
+                        if (targetStock === "ALL_STOCKS" && i.type === '주식') { target = Math.floor(i.price * (1 + impact/100)); isTrending = true; } 
+                        else if (i.name === targetStock) { target = Math.floor(i.price * (1 + impact/100)); isTrending = true; }
+                        return { ...i, targetPrice: target, trendActive: isTrending };
+                    });
+                    transaction.update(mRef, { items: nItems }); 
+                });
+                window.showAlert("주가 조작 명령 하달!"); document.getElementById('admin-manipulate-impact').value = "";
+            } catch (e) { window.showAlert("충돌 발생, 다시 시도해주세요."); }
+        };
+
+        window.adminAddStock = async () => {
+            const name = document.getElementById('admin-new-name').value.trim(); const price = parseInt(document.getElementById('admin-new-price').value); const type = document.getElementById('admin-new-type').value;
+            if(!name || isNaN(price)) return window.showAlert("종목명/가격을 입력하세요.");
+            const mRef = doc(marketCol, "main"); const snap = await getDoc(mRef);
+            if(snap.exists()) {
+                const data = snap.data(); if(data.items.find(i => i.name === name)) return window.showAlert("이미 있는 종목입니다.");
+                data.items.push({ name: name, type: type, desc: "신규 상장", price: price, history: [], candle: {t:Date.now(), o:price, h:price, l:price, c:price}, targetPrice: price, trendActive: false });
+                await updateDoc(mRef, { items: data.items }); window.showAlert(name + " 상장 완료!");
+            }
+        };
+
+    </script>
+</body>
+</html>
